@@ -66,6 +66,63 @@ class AiAssistantServiceProvider extends ServiceProvider
             }
         }, 10, 1);
 
+        \Eventy::addFilter('settings.sections', function ($sections) {
+            $sections[AI_ASSISTANT_MODULE] = ['title' => __('AI Assistant'), 'icon' => 'cloud', 'order' => 600];
+
+            return $sections;
+        }, 40);
+
+
+        \Eventy::addFilter('settings.section_settings', function ($settings, $section) {
+
+            if ($section != AI_ASSISTANT_MODULE) {
+                return $settings;
+            }
+
+            $settings['aiassistant.summary_conversation_threshold'] = \Option::get('aiassistant.summary_conversation_threshold', 3);
+
+            return $settings;
+        }, 20, 2);
+
+        \Eventy::addFilter('settings.view', function ($view, $section) {
+            if ($section != AI_ASSISTANT_MODULE) {
+                return $view;
+            } else {
+                return 'aiassistant::settings';
+            }
+        }, 20, 2);
+
+
+        // On settings save
+        \Eventy::addFilter('settings.after_save', function ($response, $request, $section, $settings) {
+            if ($section != AI_ASSISTANT_MODULE) {
+                return $response;
+            }
+
+            $settings = $request->settings ?: [];
+
+            $summary_conversation_threshold = intval($settings['aiassistant.summary_conversation_threshold']);
+
+
+            \Option::set('aiassistant.summary_conversation_threshold', $summary_conversation_threshold);
+            \Session::flash('flash_success_floating', __('Settings updated'));
+
+            return $response;
+        }, 20, 4);
+
+
+        // \Eventy::addFilter('schedule', function ($schedule) {
+        //     $schedule->command('ai-assistant:summarize-conversations')
+        //         ->cron('* * * * *')
+        //         ->withoutOverlapping($expires_at = 60 /* minutes */);
+        //     // $schedule->command('ai-assistant:translate-threads')
+        //     //     //->cron('0 0 * * *');
+        //     //     ->cron('* * * * *');
+
+        //     return $schedule;
+        // });
+
+
     }
 
     /**

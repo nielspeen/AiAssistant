@@ -122,7 +122,11 @@ class SummarizeConversationsCommand extends Command
 
     private function getConversations()
     {
-        return Conversation::where('updated_at', '>', now()->subDays(1))
+        $summary_conversation_threshold = intval(\Option::get('aiassistant.summary_conversation_threshold', 3));
+
+        return Conversation::withCount('threads')
+            ->where('threads_count', '>', $summary_conversation_threshold)
+            ->where('updated_at', '>', now()->subDays(1))
             ->where(function ($query) {
                 $query->whereNull('ai_assistant_updated_at')
                       ->orWhereColumn('updated_at', '>', 'ai_assistant_updated_at');
