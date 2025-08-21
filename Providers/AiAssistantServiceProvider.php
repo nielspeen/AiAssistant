@@ -48,30 +48,16 @@ class AiAssistantServiceProvider extends ServiceProvider
         \Eventy::addAction('conversations_table.preview_prepend', function ($conversation) {
             if (isset($conversation->ai_assistant) && $conversation->ai_assistant !== null) {
                 $aiData = json_decode($conversation->ai_assistant, true);
-                if (isset($aiData['summary'])) {
-                    // Show only the first sentence of the summary
-                    $firstSentence = '';
-                    if (isset($aiData['summary'])) {
-                        $summary = trim($aiData['summary']);
-                        // Find the position of the first period followed by a space or end of string
-                        if (preg_match('/^(.+?[.!?])(\s|$)/u', $summary, $matches)) {
-                            $firstSentence = $matches[1];
-                        } else {
-                            $firstSentence = $summary;
-                        }
-                    }
-
-                    echo '<span class="aiassistant-preview">' . e($firstSentence) . '</span><span style="display:none">';
+                if (isset($aiData['one_liner'])) {
+                    echo '<span class="aiassistant-preview">' . $aiData['one_liner'] . '</span><span style="display:none">';
                 }
             }
         }, 10, 1);
 
-
-
         \Eventy::addAction('conversation.after_subject_block', function ($conversation) {
             if (isset($conversation->ai_assistant) && $conversation->ai_assistant !== null) {
                 $aiData = json_decode($conversation->ai_assistant, true);
-                if (isset($aiData['summary'])) {
+                if (isset($aiData['summary']) && trim($aiData['summary']) != '') {
                     echo View::make('aiassistant::summary', [
                         'summary' => $aiData['summary'],
                         'updated_at' => Carbon::parse($conversation->ai_assistant_updated_at)

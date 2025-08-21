@@ -4,6 +4,7 @@ namespace Modules\AiAssistant\Console;
 
 use App\Conversation;
 use Illuminate\Console\Command;
+use Modules\AiAssistant\Services\HelperService;
 use Modules\AiAssistant\Services\OpenAiService;
 
 class SummarizeConversationsCommand extends Command
@@ -56,40 +57,63 @@ class SummarizeConversationsCommand extends Command
             // Get threads ordered by creation time (oldest first for chronological order)
             $threads = $conversation->threads()
                 ->orderBy('created_at', 'asc')
-                ->get(['body', 'created_at', 'type']);
+                ->get();
 
             // Build conversation thread JSON structure
             $conversationThread = [
-                'conversation_id' => $conversation->id,
                 'subject' => $conversation->subject,
-                'status' => $conversation->status,
                 'threads' => $threads->map(function ($thread) {
+                    if ($thread->created_by_user_id) {
+                        $author = $thread->created_by_user->first_name;
+                    } elseif ($thread->created_by_customer_id) {
+                        $author = $thread->created_by_customer->first_name;
+                    } else {
+                        $author = 'Unknown';
+                    }
                     return [
-                        'body' => $thread->body,
+                        'body' => HelperService::normalizeWhitespace(strip_tags(HelperService::stripTagsWithContent($thread->body))),
                         'created_at' => $thread->created_at->toDateTimeString(),
                         'type' => $thread->type,
-                        'source_via' => $thread->source_via,
+                        'author' => $author,
                     ];
                 })->toArray()
             ];
 
-            // Convert to JSON for OpenAI
-            $threadJson = json_encode($conversationThread, JSON_PRETTY_PRINT);
-
             $this->info("Processing conversation #{$conversation->id}: {$conversation->subject}");
 
             // Send to OpenAI for summarization
-            $response = $openAiService->sendChatCompletion(
-                config('aiassistant.prompts.summarize_conversation') . $threadJson,
-                config('aiassistant.model')
+            $response = $openAiService->sendResponseRequest(
+                tap(clone config('aiassistant.prompts.summarize_conversation'), function ($prompt) use ($conversationThread) {
+                    $prompt->conversation = $conversationThread;
+                }),
+                config('aiassistant.model'),
+                config('aiassistant.max_tokens.summarize_conversation'),
+                config('aiassistant.text_formats.summarize_conversation')
             );
 
-            $content = $response['choices'][0]['message']['content'];
+            if ($response["status"] != "completed") {
+                \Log::error("OpenAI response status is not completed for conversation #{$conversation->id}. Error: {$response['error']}");
+                continue;
+            }
+
+            foreach ($response['output'] as $output) {
+                if ($output["type"] == "message") {
+                    $content = json_decode($output["content"][0]["text"], true);
+                }
+            }
+
             $aiData = [];
             if (!is_null($conversation->ai_assistant)) {
                 $aiData = json_decode($conversation->ai_assistant, true);
             }
-            $aiData['summary'] = $content;
+
+            if (!isset($content['one_liner']) || !isset($content['summary'])) {
+                \Log::error("Invalid response from OpenAI for conversation #{$conversation->id}");
+                continue;
+            }
+
+            $aiData['one_liner'] = $content['one_liner'];
+            $aiData['summary'] = $content['summary'];
             $conversation->ai_assistant = json_encode($aiData);
             $conversation->ai_assistant_updated_at = now();
             $conversation->save();

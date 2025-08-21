@@ -12,17 +12,17 @@ class OpenAiService
         $this->apiKey = config('aiassistant.api_key');
     }
 
-    public function sendChatCompletion(string $content, string $model): array
+    public function sendResponseRequest(object $content, string $model, int $maxTokens, object $textFormat): array
     {
-        $url = $this->baseUrl . '/chat/completions';
+        $url = $this->baseUrl . '/responses';
 
         $data = [
+            'input' => json_encode($content, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            'instructions' => 'You are a helpful assistant part of a support ticketing system.',
+            'max_output_tokens' => $maxTokens,
             'model' => $model,
-            'messages' => [
-                [
-                    'role' => 'user',
-                    'content' => $content
-                ]
+            'text' => (object) [
+                'format' => $textFormat,
             ],
         ];
 
@@ -38,11 +38,6 @@ class OpenAiService
         $jsonData = json_encode($data);
 
         $ch = curl_init();
-        // Increase cURL timeouts to be more patient with slow GPT responses
-        // Set both connection and execution timeouts to 120 seconds
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 60);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 120);
-
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
@@ -53,7 +48,8 @@ class OpenAiService
                 'Authorization: Bearer ' . $this->apiKey,
                 'Content-Length: ' . strlen($jsonData)
             ],
-            CURLOPT_TIMEOUT => 30,
+            CURLOPT_TIMEOUT => 120,
+            CURLOPT_CONNECTTIMEOUT => 120,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_USERAGENT => 'FreeScout-AI-Assistant/1.0'
         ]);
