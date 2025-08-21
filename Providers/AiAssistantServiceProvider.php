@@ -111,16 +111,16 @@ class AiAssistantServiceProvider extends ServiceProvider
         }, 20, 4);
 
 
-        // \Eventy::addFilter('schedule', function ($schedule) {
-        //     $schedule->command('ai-assistant:summarize-conversations')
-        //         ->cron('* * * * *')
-        //         ->withoutOverlapping($expires_at = 60 /* minutes */);
-        //     // $schedule->command('ai-assistant:translate-threads')
-        //     //     //->cron('0 0 * * *');
-        //     //     ->cron('* * * * *');
+        \Eventy::addFilter('schedule', function ($schedule) {
+            $schedule->command('ai-assistant:summarize-conversations')
+                ->cron('* * * * *')
+                ->withoutOverlapping($expires_at = 60 /* minutes */);
+            // $schedule->command('ai-assistant:translate-threads')
+            //     //->cron('0 0 * * *');
+            //     ->cron('* * * * *');
 
-        //     return $schedule;
-        // });
+            return $schedule;
+        });
 
 
     }
