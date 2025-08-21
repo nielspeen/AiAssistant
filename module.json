@@ -2,9 +2,9 @@
     "name": "AI Assistant",
     "alias": "aiassistant",
     "description": "AI Assistant",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "requiredAppVersion": "1.8.191",
-    "detailsUrl": "https://github.com/nielspeen/freescout-ai-assistant",
+    "detailsUrl": "https://github.com/nielspeen/AiAssistant",
     "author": "Niels Peen",
     "authorUrl": "https://github.com/nielspeen",
     "license": "AGPL-3.0",
@@ -19,7 +19,7 @@
         "start.php"
     ],
     "requires": [],
-    "img": "https://raw.githubusercontent.com/nielspeen/freescout-ai-assistant/refs/heads/main/Public/aiassistant.png",
-    "latestVersionUrl": "https://raw.githubusercontent.com/nielspeen/freescout-ai-assistant/refs/heads/main/module.json",
-    "latestVersionZipUrl": "https://github.com/nielspeen/freescout-ai-assistant/archive/refs/heads/main.zip"
+    "img": "https://raw.githubusercontent.com/nielspeen/AiAssistant/refs/heads/main/Public/aiassistant.png",
+    "latestVersionUrl": "https://raw.githubusercontent.com/nielspeen/AiAssistant/refs/heads/main/module.json",
+    "latestVersionZipUrl": "https://github.com/nielspeen/AiAssistant/archive/refs/heads/main.zip"
 }
