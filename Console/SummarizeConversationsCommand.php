@@ -14,7 +14,7 @@ class SummarizeConversationsCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'aiassistant:summarize-conversations';
+    protected $signature = 'ai-assistant:summarize-conversations';
 
     /**
      * The console command description.

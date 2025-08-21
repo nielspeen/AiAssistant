@@ -11,7 +11,7 @@ class TranslateThreadsCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'aiassistant:translate-threads';
+    protected $signature = 'ai-assistant:translate-threads';
 
     /**
      * The console command description.
