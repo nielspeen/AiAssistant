@@ -1,4 +1,5 @@
-# AI Assistant
+# FreeScout AI Assistant
+
 
 WORK IN PROGRESS
 
