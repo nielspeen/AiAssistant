@@ -1,0 +1,8 @@
+.thread-type-ai {
+    background-color: #ebf3fb;
+    -webkit-box-shadow: inset 5px 0 0 0 rgb(106, 193, 255);
+    box-shadow: inset 5px 0 0 0 rgb(106, 193, 255);
+}
+
+.aiassistant-preview {
+}
