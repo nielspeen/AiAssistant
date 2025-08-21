@@ -54,7 +54,7 @@ class AiAssistantServiceProvider extends ServiceProvider
             }
         }, 10, 1);
 
-        \Eventy::addAction('conversation.after_subject_block', function ($conversation) {
+        \Eventy::addAction('conversation.before_threads', function ($conversation) {
             if (isset($conversation->ai_assistant) && $conversation->ai_assistant !== null) {
                 $aiData = json_decode($conversation->ai_assistant, true);
                 if (isset($aiData['summary']) && trim($aiData['summary']) != '') {
