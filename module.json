@@ -19,7 +19,7 @@
         "start.php"
     ],
     "requires": [],
-    "img": "/modules/aiassistant/aiassistant.png",
+    "img": "https://raw.githubusercontent.com/nielspeen/freescout-ai-assistant/refs/heads/main/Public/aiassistant.png",
     "latestVersionUrl": "https://raw.githubusercontent.com/nielspeen/freescout-ai-assistant/refs/heads/main/module.json",
     "latestVersionZipUrl": "https://github.com/nielspeen/freescout-ai-assistant/archive/refs/heads/main.zip"
 }
