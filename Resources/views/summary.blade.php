@@ -1,4 +1,4 @@
-<div class="thread thread-type-ai" id="thread-ai" data-thread_id="ai">
+<div class="thread thread-type-ai-summary" id="thread-ai-summary" data-thread_id="ai-summary">
     <div class="thread-photo">
         <img class="person-photo" src="/modules/aiassistant/avatar.png" alt="">
     </div>
@@ -7,15 +7,13 @@
             <div class="thread-title">
                 <div class="thread-person">
                     <strong>
-                        <a href="https://freescout.test/users/profile/1">AI</a>
+                        {{ __('Summary') }}
                     </strong>
-
-
                 </div>
             </div>
             <div class="thread-info">
 
-                <a href="#thread-14" class="thread-date" data-toggle="tooltip" title=""
+                <a href="#thread-ai-summary" class="thread-date" data-toggle="tooltip" title=""
                     data-original-title="{{ $updated_at }}">{{ $updated_at->diffForHumans() }}</a><br>
 
                 <span class="thread-status">

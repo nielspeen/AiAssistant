@@ -1,7 +1,10 @@
-.thread-type-ai {
+.thread-type-ai-summary {
     background-color: #ebf3fb;
     -webkit-box-shadow: inset 5px 0 0 0 rgb(106, 193, 255);
     box-shadow: inset 5px 0 0 0 rgb(106, 193, 255);
+}
+.thread-type-ai-summary {
+    color: #3197d6;
 }
 
 .aiassistant-preview {
