@@ -66,6 +66,19 @@ class AiAssistantServiceProvider extends ServiceProvider
             }
         }, 10, 1);
 
+        \Eventy::addAction('thread.before_body', function ($thread, $loop, $threads, $conversation, $mailbox) {
+            if (isset($thread->ai_assistant) && $thread->ai_assistant !== null) {
+                $aiData = json_decode($thread->ai_assistant, true);
+                if (isset($aiData['translation']) && trim($aiData['translation']) != '') {
+                    echo View::make('aiassistant::translation', [
+                        'translation' => $aiData['translation'],
+                        'updated_at' => Carbon::parse($thread->ai_assistant_updated_at)
+                    ]);
+                }
+            }
+        }, 20, 5);
+
+
         \Eventy::addFilter('settings.sections', function ($sections) {
             $sections[AI_ASSISTANT_MODULE] = ['title' => __('AI Assistant'), 'icon' => 'cloud', 'order' => 600];
 
@@ -80,6 +93,7 @@ class AiAssistantServiceProvider extends ServiceProvider
             }
 
             $settings['aiassistant.summary_conversation_threshold'] = \Option::get('aiassistant.summary_conversation_threshold', 3);
+            $settings['aiassistant.translation_language'] = \Option::get('aiassistant.translation_language', 'en');
 
             return $settings;
         }, 20, 2);
@@ -102,9 +116,10 @@ class AiAssistantServiceProvider extends ServiceProvider
             $settings = $request->settings ?: [];
 
             $summary_conversation_threshold = intval($settings['aiassistant.summary_conversation_threshold']);
-
+            $translation_language = $settings['aiassistant.translation_language'];
 
             \Option::set('aiassistant.summary_conversation_threshold', $summary_conversation_threshold);
+            \Option::set('aiassistant.translation_language', $translation_language);
             \Session::flash('flash_success_floating', __('Settings updated'));
 
             return $response;
@@ -115,9 +130,9 @@ class AiAssistantServiceProvider extends ServiceProvider
             $schedule->command('ai-assistant:summarize-conversations')
                 ->cron('* * * * *')
                 ->withoutOverlapping($expires_at = 60 /* minutes */);
-            // $schedule->command('ai-assistant:translate-threads')
-            //     //->cron('0 0 * * *');
-            //     ->cron('* * * * *');
+            $schedule->command('ai-assistant:translate-threads')
+                ->cron('* * * * *')
+                ->withoutOverlapping($expires_at = 60 /* minutes */);
 
             return $schedule;
         });

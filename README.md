@@ -1,8 +1,8 @@
 # FreeScout AI Assistant
 
 ## Features
-* Summarizes conversations
-* Translates threads (WIP)
+* Summarizes conversations with more that N (configurable) messages.
+* Translates threads, unless they're already in the target language.
   
 ## Installation
 

@@ -26,6 +26,27 @@
         </div>
     </div>
 
+    <h3 class="subheader">{{ __('Threads') }}</h3>
+
+    <div class="form-group margin-top">
+        <label for="summarize_conversation_threshold" class="col-sm-2 control-label">{{ __('Language') }}</label>
+        <div class="col-sm-6">
+            <select name="settings[aiassistant.translation_language]" class="form-control input-sized" id="translation_language">
+                <option value="en" {{ $settings['aiassistant.translation_language'] == 'en' ? 'selected' : '' }}>English</option>
+                <option value="nl" {{ $settings['aiassistant.translation_language'] == 'nl' ? 'selected' : '' }}>Dutch</option>
+                <option value="de" {{ $settings['aiassistant.translation_language'] == 'de' ? 'selected' : '' }}>German</option>
+                <option value="fr" {{ $settings['aiassistant.translation_language'] == 'fr' ? 'selected' : '' }}>French</option>
+                <option value="es" {{ $settings['aiassistant.translation_language'] == 'es' ? 'selected' : '' }}>Spanish</option>
+                <option value="it" {{ $settings['aiassistant.translation_language'] == 'it' ? 'selected' : '' }}>Italian</option>
+                <option value="pt" {{ $settings['aiassistant.translation_language'] == 'pt' ? 'selected' : '' }}>Portuguese</option>
+                <option value="ru" {{ $settings['aiassistant.translation_language'] == 'ru' ? 'selected' : '' }}>Russian</option>
+                <option value="zh" {{ $settings['aiassistant.translation_language'] == 'zh' ? 'selected' : '' }}>Chinese</option>
+            </select>
+            <div class="form-help">Language to use for translations.</div>
+        </div>
+    </div>
+
+
     <div class="form-group margin-top-0 margin-bottom-0">
         <div class="col-sm-6 col-sm-offset-2">
             <button type="submit" class="btn btn-primary">
