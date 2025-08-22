@@ -49,7 +49,7 @@ class AiAssistantServiceProvider extends ServiceProvider
             if (isset($conversation->ai_assistant) && $conversation->ai_assistant !== null) {
                 $aiData = json_decode($conversation->ai_assistant, true);
                 if (isset($aiData['one_liner'])) {
-                    echo '<span class="aiassistant-preview">' . $aiData['one_liner'] . '</span><span style="display:none">';
+                    echo '<span class="ai-assistant-badge">AI</span> <span class="ai-assistant-preview">' . $aiData['one_liner'] . '</span><span style="display:none">';
                 }
             }
         }, 10, 1);

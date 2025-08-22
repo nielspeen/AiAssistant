@@ -19,3 +19,11 @@
     font-weight: 600;
     padding-bottom: 10px;
 }
+
+.ai-assistant-badge {
+    font-size: 11px;
+    background-color: #ebf3fb;
+    font-weight: 500;
+    padding: 1px 5px;
+    border-radius: 5px;
+}
