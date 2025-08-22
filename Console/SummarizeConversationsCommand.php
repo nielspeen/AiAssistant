@@ -70,12 +70,16 @@ class SummarizeConversationsCommand extends Command
                     } else {
                         $author = 'Unknown';
                     }
-                    return [
-                        'body' => HelperService::normalizeWhitespace(strip_tags(HelperService::stripTagsWithContent($thread->body))),
-                        'created_at' => $thread->created_at->toDateTimeString(),
-                        'type' => $thread->type,
-                        'author' => $author,
-                    ];
+                    if (! is_null($thread->body)) {
+                        return [
+                            'body' => HelperService::normalizeWhitespace(strip_tags(HelperService::stripTagsWithContent($thread->body))),
+                            'created_at' => $thread->created_at->toDateTimeString(),
+                            'type' => $thread->type,
+                            'author' => $author,
+                        ];
+                    } else {
+                        return null;
+                    }
                 })->toArray()
             ];
 
