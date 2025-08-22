@@ -4,6 +4,7 @@ namespace Modules\AiAssistant\Console;
 
 use App\Thread;
 use Illuminate\Console\Command;
+use Modules\AiAssistant\Services\HelperService;
 use Modules\AiAssistant\Services\OpenAiService;
 
 class TranslateThreadsCommand extends Command
@@ -64,7 +65,7 @@ class TranslateThreadsCommand extends Command
 
             // Build conversation thread JSON structure
             $threadData = [
-                'body' => $thread->body,
+                'body' => HelperService::normalizeWhitespace(strip_tags(HelperService::stripTagsWithContent($thread->body))),
                 'author' => $author,
             ];
 
