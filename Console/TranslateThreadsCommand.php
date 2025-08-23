@@ -63,6 +63,11 @@ class TranslateThreadsCommand extends Command
                 $author = 'Unknown';
             }
 
+            if (empty($thread->body)) {
+                $this->info("Thread #{$thread->id} has no body. Skipping.");
+                continue;
+            }
+
             // Build conversation thread JSON structure
             $threadData = [
                 'body' => HelperService::normalizeWhitespace(strip_tags(HelperService::stripTagsWithContent($thread->body))),
