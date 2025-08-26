@@ -2,14 +2,14 @@
 
 namespace Modules\AiAssistant\Providers;
 
-require_once __DIR__.'/../vendor/autoload.php';
-
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Database\Eloquent\Factory;
 use Modules\AiAssistant\Console\TranslateThreadsCommand;
 use Modules\AiAssistant\Console\SummarizeConversationsCommand;
+
+require_once __DIR__.'/../vendor/autoload.php';
 
 define('AI_ASSISTANT_MODULE', 'aiassistant');
 
