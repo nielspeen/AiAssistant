@@ -1,0 +1,29 @@
+{
+    "name": "nielspeen/ai-assistant",
+    "description": "AI Assistant for FreeScout",
+    "authors": [
+        {
+            "name": "Niels Peen",
+            "email": "hello@nielspeen.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Modules\\AiAssistant\\Providers\\AiAssistantServiceProvider"
+            ],
+            "aliases": {
+                
+            }
+        }
+    },
+    "require": {
+        "patrickschur/language-detection": "^5.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\AiAssistant\\": ""
+        }
+    }
+
+}
