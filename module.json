@@ -12,8 +12,7 @@
     "active": 1,
     "order": 0,
     "providers": [
-        "Modules\\AiAssistant\\Providers\\AiAssistantServiceProvider",
-        "\\LanguageDetection\\LanguageServiceProvider"
+        "Modules\\AiAssistant\\Providers\\AiAssistantServiceProvider"
     ],
     "aliases": {},
     "files": [
