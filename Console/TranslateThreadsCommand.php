@@ -4,6 +4,7 @@ namespace Modules\AiAssistant\Console;
 
 use App\Thread;
 use Illuminate\Console\Command;
+use LanguageDetection\Language;
 use Modules\AiAssistant\Services\HelperService;
 use Modules\AiAssistant\Services\OpenAiService;
 
@@ -53,6 +54,9 @@ class TranslateThreadsCommand extends Command
             return;
         }
 
+        $desiredLanguage = \Option::get('aiassistant.translation_language', 'en');
+        $languageDetector  = new Language();
+
         foreach ($threads as $thread) {
 
             if ($thread->created_by_user_id) {
@@ -74,6 +78,14 @@ class TranslateThreadsCommand extends Command
                 'author' => $author,
             ];
 
+            // Make sure it's not already in English
+            $languages = (array)$languageDetector->detect($thread->body);
+            if (array_key_first($languages) === $desiredLanguage) {
+                $this->info("Thread #{$thread->id} is already in desired language ({$desiredLanguage}). Skipping.");
+                $thread->ai_assistant_updated_at = now();
+                $thread->save();
+                continue;
+            }
 
             $this->info("Processing thread #{$thread->id}.");
 

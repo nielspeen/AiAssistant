@@ -2,6 +2,8 @@
 
 namespace Modules\AiAssistant\Providers;
 
+require_once __DIR__.'/../vendor/autoload.php';
+
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
