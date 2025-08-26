@@ -74,12 +74,13 @@ class TranslateThreadsCommand extends Command
 
             // Build conversation thread JSON structure
             $threadData = [
-                'body' => HelperService::normalizeWhitespace(strip_tags(HelperService::stripTagsWithContent($thread->body))),
+                'body' => HelperService::normalizeWhitespace(strip_tags(HelperService::stripTagsWithContent($this->extractTextForLanguageTranslation($thread->body)))),
                 'author' => $author,
             ];
 
             // Make sure it's not already in English
-            $languages = (array)$languageDetector->detect($thread->body);
+            $languages = (array)$languageDetector->detect($threadData['body'])->close();
+
             if (array_key_first($languages) === $desiredLanguage) {
                 $this->info("Thread #{$thread->id} is already in desired language ({$desiredLanguage}). Skipping.");
                 $thread->ai_assistant_updated_at = now();
@@ -87,7 +88,7 @@ class TranslateThreadsCommand extends Command
                 continue;
             }
 
-            $this->info("Processing thread #{$thread->id}.");
+            $this->info("Translating thread #{$thread->id}, language: " . array_key_first($languages));
 
             // Send to OpenAI for summarization
             $response = $openAiService->sendResponseRequest(
@@ -115,8 +116,8 @@ class TranslateThreadsCommand extends Command
                 $aiData = json_decode($thread->ai_assistant, true);
             }
 
-            if (!isset($content['translation'])) {
-                \Log::error("Invalid response from OpenAI for thread #{$thread->id}");
+            if (!isset($content['translation']) || trim($content["translation"]) == "") {
+                \Log::error("Invalid response from OpenAI for thread #{$thread->id}: " . json_encode($content));
                 continue;
             }
 
@@ -132,6 +133,49 @@ class TranslateThreadsCommand extends Command
             $thread->save();
             return;
         }
+    }
+
+    private function extractTextForLanguageTranslation(string $text): string
+    {
+        // Split into lines
+        $lines = explode("\n", $text);
+        $extractedLines = [];
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+
+            // Skip empty lines
+            if (empty($line)) {
+                continue;
+            }
+
+            // Stop if we hit a quote mark (common email quote indicators)
+            if (preg_match('/^[>|\|]/', $line) ||
+                preg_match('/^On .+ wrote:$/', $line) ||
+                preg_match('/^From: .+$/', $line) ||
+                preg_match('/^Sent: .+$/', $line) ||
+                preg_match('/^To: .+$/', $line) ||
+                preg_match('/^Subject: .+$/', $line) ||
+                preg_match('/^Date: .+$/', $line) ||
+                preg_match('/^-{3,}$/', $line) || // Separator lines
+                preg_match('/^_{3,}$/', $line) || // Separator lines
+                preg_match('/<div id="ymail_android_signature">/', $line) || // Yahoo Mail signature
+                preg_match('/<a id="ymail_android_signature_link"/', $line)) { // Yahoo Mail signature link
+                break;
+            }
+
+            $extractedLines[] = $line;
+        }
+
+        $result = implode(' ', $extractedLines);
+
+        // If we still have no content, just return the first few lines without filtering
+        if (empty($result) && count($lines) > 0) {
+            $firstLines = array_slice($lines, 0, min(3, count($lines)));
+            $result = implode(' ', array_filter(array_map('trim', $firstLines)));
+        }
+
+        return $result;
     }
 
     private function getThreads()
