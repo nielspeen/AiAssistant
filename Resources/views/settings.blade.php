@@ -33,14 +33,33 @@
         <div class="col-sm-6">
             <select name="settings[aiassistant.translation_language]" class="form-control input-sized" id="translation_language">
                 <option value="en" {{ $settings['aiassistant.translation_language'] == 'en' ? 'selected' : '' }}>English</option>
-                <option value="nl" {{ $settings['aiassistant.translation_language'] == 'nl' ? 'selected' : '' }}>Dutch</option>
-                <option value="de" {{ $settings['aiassistant.translation_language'] == 'de' ? 'selected' : '' }}>German</option>
-                <option value="fr" {{ $settings['aiassistant.translation_language'] == 'fr' ? 'selected' : '' }}>French</option>
-                <option value="es" {{ $settings['aiassistant.translation_language'] == 'es' ? 'selected' : '' }}>Spanish</option>
-                <option value="it" {{ $settings['aiassistant.translation_language'] == 'it' ? 'selected' : '' }}>Italian</option>
-                <option value="pt" {{ $settings['aiassistant.translation_language'] == 'pt' ? 'selected' : '' }}>Portuguese</option>
-                <option value="ru" {{ $settings['aiassistant.translation_language'] == 'ru' ? 'selected' : '' }}>Russian</option>
-                <option value="zh" {{ $settings['aiassistant.translation_language'] == 'zh' ? 'selected' : '' }}>Chinese</option>
+                <hr>
+                <option value="ms-Arab" {{ $settings['aiassistant.translation_language'] == 'ms-Arab' ? 'selected' : '' }}>Bahasa Melayu (Arab)</option>
+                <option value="ms-Latn" {{ $settings['aiassistant.translation_language'] == 'ms-Latn' ? 'selected' : '' }}>Bahasa Melayu (Latin)</option>
+                <option value="de" {{ $settings['aiassistant.translation_language'] == 'de' ? 'selected' : '' }}>Deutsch</option>
+                <option value="es" {{ $settings['aiassistant.translation_language'] == 'es' ? 'selected' : '' }}>Español</option>
+                <option value="fr" {{ $settings['aiassistant.translation_language'] == 'fr' ? 'selected' : '' }}>Français</option>
+                <option value="el-monoton" {{ $settings['aiassistant.translation_language'] == 'el-monoton' ? 'selected' : '' }}>Greek (Monotonic)</option>
+                <option value="el-polyton" {{ $settings['aiassistant.translation_language'] == 'el-polyton' ? 'selected' : '' }}>Greek (Polytonic)</option>
+                <option value="it" {{ $settings['aiassistant.translation_language'] == 'it' ? 'selected' : '' }}>Italiano</option>
+                <option value="mt" {{ $settings['aiassistant.translation_language'] == 'mt' ? 'selected' : '' }}>Malti</option>
+                <option value="nl" {{ $settings['aiassistant.translation_language'] == 'nl' ? 'selected' : '' }}>Nederlands</option>
+                <option value="no" {{ $settings['aiassistant.translation_language'] == 'no' ? 'selected' : '' }}>Norsk</option>
+                <option value="pl" {{ $settings['aiassistant.translation_language'] == 'pl' ? 'selected' : '' }}>Polski</option>
+                <option value="pt-PT" {{ $settings['aiassistant.translation_language'] == 'pt-PT' ? 'selected' : '' }}>Português (PT)</option>
+                <option value="pt-BR" {{ $settings['aiassistant.translation_language'] == 'pt-BR' ? 'selected' : '' }}>Português (BR)</option>
+                <option value="ro" {{ $settings['aiassistant.translation_language'] == 'ro' ? 'selected' : '' }}>Română</option>
+                <option value="sk" {{ $settings['aiassistant.translation_language'] == 'sk' ? 'selected' : '' }}>Slovenčina</option>
+                <option value="sl" {{ $settings['aiassistant.translation_language'] == 'sl' ? 'selected' : '' }}>Slovenščina</option>
+                <option value="sv" {{ $settings['aiassistant.translation_language'] == 'sv' ? 'selected' : '' }}>Svenska</option>
+                <option value="th" {{ $settings['aiassistant.translation_language'] == 'th' ? 'selected' : '' }}>ไทย</option>
+                <option value="tr" {{ $settings['aiassistant.translation_language'] == 'tr' ? 'selected' : '' }}>Türkçe</option>
+                <option value="uk" {{ $settings['aiassistant.translation_language'] == 'uk' ? 'selected' : '' }}>Українська</option>
+                <option value="vi" {{ $settings['aiassistant.translation_language'] == 'vi' ? 'selected' : '' }}>Tiếng Việt</option>
+                <option value="ru" {{ $settings['aiassistant.translation_language'] == 'ru' ? 'selected' : '' }}>Русский</option>
+                <option value="ja" {{ $settings['aiassistant.translation_language'] == 'ja' ? 'selected' : '' }}>日本語</option>
+                <option value="zh-Hans" {{ $settings['aiassistant.translation_language'] == 'zh-Hans' ? 'selected' : '' }}>简体中文</option>
+                <option value="zh-Hant" {{ $settings['aiassistant.translation_language'] == 'zh-Hant' ? 'selected' : '' }}>繁體中文</option>
             </select>
             <div class="form-help">Language to use for translations.</div>
         </div>
