@@ -22,7 +22,7 @@
                 <option value="9" {{ $settings['aiassistant.summary_conversation_threshold'] == 9 ? 'selected' : '' }}>9</option>
                 <option value="10" {{ $settings['aiassistant.summary_conversation_threshold'] == 10 ? 'selected' : '' }}>10</option>
             </select>
-            <div class="form-help">Minimum number of messages to start summarizing a conversation.</div>
+            <div class="form-help">Create summaries when a conversation has more than {{ $settings['aiassistant.summary_conversation_threshold'] }} messages.</div>
         </div>
     </div>
 
@@ -61,7 +61,7 @@
                 <option value="zh-Hans" {{ $settings['aiassistant.translation_language'] == 'zh-Hans' ? 'selected' : '' }}>简体中文</option>
                 <option value="zh-Hant" {{ $settings['aiassistant.translation_language'] == 'zh-Hant' ? 'selected' : '' }}>繁體中文</option>
             </select>
-            <div class="form-help">Language to use for translations.</div>
+            <div class="form-help">Translate threads to the selected language.</div>
         </div>
     </div>
 
