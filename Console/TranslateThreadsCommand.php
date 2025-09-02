@@ -116,16 +116,17 @@ class TranslateThreadsCommand extends Command
                 $aiData = json_decode($thread->ai_assistant, true);
             }
 
-            if (!isset($content['translation']) || trim($content["translation"]) == "") {
-                \Log::error("Invalid response from OpenAI for thread #{$thread->id}: " . json_encode($content));
-                continue;
-            }
-
             if ($content['same_language']) {
                 $thread->ai_assistant_updated_at = now();
                 $thread->save();
                 continue;
             }
+
+            if (!isset($content['translation']) || trim($content["translation"]) == "") {
+                \Log::error("Invalid response from OpenAI for thread #{$thread->id}: " . json_encode($content));
+                continue;
+            }
+
 
             $aiData['translation'] = $content['translation'];
             $thread->ai_assistant = json_encode($aiData);
