@@ -30,6 +30,7 @@ class AiAssistantServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->registerConfig();
+        $this->importLegacyApiKey();
         $this->registerViews();
         $this->registerFactories();
         $this->registerCommands();
@@ -94,11 +95,52 @@ class AiAssistantServiceProvider extends ServiceProvider
                 return $settings;
             }
 
+            $settings['aiassistant.provider'] = \Option::get('aiassistant.provider', config('aiassistant.provider', 'openai'));
+            $settings['aiassistant.api_key'] = \Helper::decrypt(\Option::get('aiassistant.api_key', ''));
+            $settings['aiassistant.base_url'] = \Option::get('aiassistant.base_url', '');
+            $settings['aiassistant.model'] = \Option::get('aiassistant.model', config('aiassistant.model'));
             $settings['aiassistant.summary_conversation_threshold'] = \Option::get('aiassistant.summary_conversation_threshold', 3);
             $settings['aiassistant.translation_language'] = \Option::get('aiassistant.translation_language', 'en');
 
             return $settings;
         }, 20, 2);
+
+        \Eventy::addFilter('settings.section_params', function ($params, $section) {
+            if ($section != AI_ASSISTANT_MODULE) {
+                return $params;
+            }
+
+            $params['settings'] = [
+                'aiassistant.api_key' => [
+                    'safe_password' => true,
+                    'encrypt' => true,
+                ],
+            ];
+
+            return $params;
+        }, 20, 2);
+
+        \Eventy::addFilter('settings.before_save', function ($request, $section, $settings) {
+            if ($section != AI_ASSISTANT_MODULE || empty($request->settings)) {
+                return $request;
+            }
+
+            $settings_input = $request->settings;
+
+            foreach (['aiassistant.provider', 'aiassistant.api_key', 'aiassistant.base_url', 'aiassistant.model'] as $setting) {
+                if (isset($settings_input[$setting])) {
+                    $settings_input[$setting] = trim($settings_input[$setting]);
+                }
+            }
+
+            if (!empty($settings_input['aiassistant.base_url'])) {
+                $settings_input['aiassistant.base_url'] = rtrim($settings_input['aiassistant.base_url'], '/');
+            }
+
+            $request->merge(['settings' => $settings_input]);
+
+            return $request;
+        }, 20, 3);
 
         \Eventy::addFilter('settings.view', function ($view, $section) {
             if ($section != AI_ASSISTANT_MODULE) {
@@ -115,13 +157,6 @@ class AiAssistantServiceProvider extends ServiceProvider
                 return $response;
             }
 
-            $settings = $request->settings ?: [];
-
-            $summary_conversation_threshold = intval($settings['aiassistant.summary_conversation_threshold']);
-            $translation_language = $settings['aiassistant.translation_language'];
-
-            \Option::set('aiassistant.summary_conversation_threshold', $summary_conversation_threshold);
-            \Option::set('aiassistant.translation_language', $translation_language);
             \Session::flash('flash_success_floating', __('Settings updated'));
 
             return $response;
@@ -166,6 +201,30 @@ class AiAssistantServiceProvider extends ServiceProvider
             __DIR__.'/../Config/config.php',
             'aiassistant'
         );
+    }
+
+    protected function importLegacyApiKey()
+    {
+        try {
+            $storedApiKey = \Option::get('aiassistant.api_key', null, true, false);
+
+            if ($storedApiKey !== null) {
+                return;
+            }
+
+            $legacyApiKey = config('aiassistant.legacy_api_key', config('aiassistant.api_key'));
+
+            if (!$legacyApiKey) {
+                return;
+            }
+
+            $encryptedApiKey = \Helper::encrypt($legacyApiKey);
+
+            \Option::set('aiassistant.api_key', $encryptedApiKey);
+            \App\Option::$cache['aiassistant.api_key'] = $encryptedApiKey;
+        } catch (\Exception $e) {
+            // Ignore import failures; users can save a key from settings.
+        }
     }
 
     /**

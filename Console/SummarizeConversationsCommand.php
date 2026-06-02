@@ -40,12 +40,6 @@ class SummarizeConversationsCommand extends Command
      */
     public function handle()
     {
-        $apiKey = config('aiassistant.api_key');
-        if (!$apiKey) {
-            $this->error('API key is not set');
-            return;
-        }
-
         $openAiService = new OpenAiService();
         $conversations = $this->getConversations();
 
@@ -85,18 +79,18 @@ class SummarizeConversationsCommand extends Command
 
             $this->info("Processing conversation #{$conversation->id}: {$conversation->subject}");
 
-            // Send to OpenAI for summarization
+            // Send to AI provider for summarization
             $response = $openAiService->sendResponseRequest(
                 tap(clone config('aiassistant.prompts.summarize_conversation'), function ($prompt) use ($conversationThread) {
                     $prompt->conversation = $conversationThread;
                 }),
-                config('aiassistant.model'),
+                $openAiService->getConfiguredModel(),
                 config('aiassistant.max_tokens.summarize_conversation'),
                 config('aiassistant.text_formats.summarize_conversation')
             );
 
             if ($response["status"] != "completed") {
-                \Log::error("OpenAI response status is not completed for conversation #{$conversation->id}. Error: {$response['error']}");
+                \Log::error("AI provider response status is not completed for conversation #{$conversation->id}. Error: {$response['error']}");
                 continue;
             }
 
@@ -112,7 +106,7 @@ class SummarizeConversationsCommand extends Command
             }
 
             if (!isset($content['one_liner']) || !isset($content['summary'])) {
-                \Log::error("Invalid response from OpenAI for conversation #{$conversation->id}");
+                \Log::error("Invalid response from AI provider for conversation #{$conversation->id}");
                 continue;
             }
 

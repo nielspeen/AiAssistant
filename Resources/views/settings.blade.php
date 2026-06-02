@@ -4,6 +4,45 @@
     <input type="hidden" name="settings[dummy]" value="1" />
 
 
+    <h3 class="subheader">{{ __('Provider') }}</h3>
+
+    <div class="form-group margin-top">
+        <label for="aiassistant_provider" class="col-sm-2 control-label">{{ __('Provider') }}</label>
+        <div class="col-sm-6">
+            <select name="settings[aiassistant.provider]" class="form-control input-sized" id="aiassistant_provider">
+                @foreach (config('aiassistant.providers', []) as $provider_key => $provider)
+                    <option value="{{ $provider_key }}" {{ $settings['aiassistant.provider'] == $provider_key ? 'selected' : '' }}>{{ $provider['name'] }}</option>
+                @endforeach
+            </select>
+            <div class="form-help">{{ __('Select a provider that supports the OpenAI-compatible Chat Completions API.') }}</div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="aiassistant_api_key" class="col-sm-2 control-label">{{ __('API Key') }}</label>
+        <div class="col-sm-6">
+            <input id="aiassistant_api_key" type="password" class="form-control input-sized" name="settings[aiassistant.api_key]" value="{{ \Helper::safePassword($settings['aiassistant.api_key']) }}" autocomplete="new-password">
+            <div class="form-help">{{ __('Leave the masked value unchanged to keep the current key. Some local providers do not require a key.') }}</div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="aiassistant_base_url" class="col-sm-2 control-label">{{ __('Base URL') }}</label>
+        <div class="col-sm-6">
+            <input id="aiassistant_base_url" type="url" class="form-control input-sized" name="settings[aiassistant.base_url]" value="{{ $settings['aiassistant.base_url'] }}" placeholder="{{ config('aiassistant.providers.openai.base_url') }}">
+            <div class="form-help">{{ __('Optional. Leave blank to use the selected provider default.') }}</div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="aiassistant_model" class="col-sm-2 control-label">{{ __('Model') }}</label>
+        <div class="col-sm-6">
+            <input id="aiassistant_model" type="text" class="form-control input-sized" name="settings[aiassistant.model]" value="{{ $settings['aiassistant.model'] }}" maxlength="255">
+            <div class="form-help">{{ __('Enter the model identifier from the selected provider.') }}</div>
+        </div>
+    </div>
+
+
     <h3 class="subheader">{{ __('Conversations') }}</h3>
 
     <div class="form-group margin-top">

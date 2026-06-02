@@ -5,37 +5,73 @@ namespace Modules\AiAssistant\Services;
 class OpenAiService
 {
     private $apiKey;
-    private $baseUrl = 'https://api.openai.com/v1';
+    private $baseUrl;
+    private $provider;
 
     public function __construct()
     {
-        $this->apiKey = config('aiassistant.api_key');
+        $this->provider = $this->getConfiguredProvider();
+        $this->apiKey = $this->getConfiguredApiKey();
+        $this->baseUrl = $this->getConfiguredBaseUrl();
+    }
+
+    public function getConfiguredModel(): string
+    {
+        return trim(\Option::get('aiassistant.model', '')) ?: config('aiassistant.model');
     }
 
     public function sendResponseRequest(object $content, string $model, int $maxTokens, object $textFormat): array
     {
-        $url = $this->baseUrl . '/responses';
+        $url = $this->baseUrl . '/chat/completions';
 
         $data = [
-            'input' => json_encode($content, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-            'instructions' => 'You are a helpful assistant part of a support ticketing system.',
-            'max_output_tokens' => $maxTokens,
-            'model' => $model,
-            'text' => (object) [
-                'format' => $textFormat,
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => 'You are a helpful assistant part of a support ticketing system. Return only valid JSON matching the requested schema.',
+                ],
+                [
+                    'role' => 'user',
+                    'content' => json_encode($content, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                ],
             ],
+            'max_tokens' => $maxTokens,
+            'model' => $model,
+            'response_format' => $this->chatCompletionResponseFormat($textFormat),
         ];
 
-        return $this->makeRequest($url, $data);
+        $response = $this->makeRequest($url, $data);
+
+        return [
+            'status' => 'completed',
+            'output' => [
+                [
+                    'type' => 'message',
+                    'content' => [
+                        [
+                            'text' => $this->extractContent($response),
+                        ],
+                    ],
+                ],
+            ],
+        ];
     }
 
     private function makeRequest(string $url, array $data): array
     {
-        if (!$this->apiKey) {
-            throw new \Exception('OpenAI API key is not configured');
+        if (!$this->apiKey && $this->providerRequiresApiKey()) {
+            throw new \Exception('AI provider API key is not configured');
         }
 
         $jsonData = json_encode($data);
+        $headers = [
+            'Content-Type: application/json',
+            'Content-Length: ' . strlen($jsonData)
+        ];
+
+        if ($this->apiKey) {
+            $headers[] = 'Authorization: Bearer ' . $this->apiKey;
+        }
 
         $ch = curl_init();
         curl_setopt_array($ch, [
@@ -43,11 +79,7 @@ class OpenAiService
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => $jsonData,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'Authorization: Bearer ' . $this->apiKey,
-                'Content-Length: ' . strlen($jsonData)
-            ],
+            CURLOPT_HTTPHEADER => $headers,
             CURLOPT_TIMEOUT => 120,
             CURLOPT_CONNECTTIMEOUT => 120,
             CURLOPT_SSL_VERIFYPEER => true,
@@ -64,7 +96,7 @@ class OpenAiService
             throw new \Exception('cURL error: ' . $error);
         }
 
-        if ($httpCode !== 200) {
+        if ($httpCode < 200 || $httpCode >= 300) {
             throw new \Exception('HTTP error: ' . $httpCode . ' - ' . $response);
         }
 
@@ -84,6 +116,47 @@ class OpenAiService
         }
 
         return '';
+    }
+
+    private function chatCompletionResponseFormat(object $textFormat): array
+    {
+        return [
+            'type' => 'json_schema',
+            'json_schema' => [
+                'name' => $textFormat->name,
+                'strict' => $textFormat->strict,
+                'schema' => $textFormat->schema,
+            ],
+        ];
+    }
+
+    private function getConfiguredApiKey(): string
+    {
+        return \Helper::decrypt(\Option::get('aiassistant.api_key', '')) ?: '';
+    }
+
+    private function getConfiguredBaseUrl(): string
+    {
+        $baseUrl = trim(\Option::get('aiassistant.base_url', ''));
+
+        if (!$baseUrl) {
+            $providers = config('aiassistant.providers', []);
+            $baseUrl = $providers[$this->provider]['base_url'] ?? $providers['openai']['base_url'] ?? 'https://api.openai.com/v1';
+        }
+
+        return rtrim($baseUrl, '/');
+    }
+
+    private function getConfiguredProvider(): string
+    {
+        return \Option::get('aiassistant.provider', config('aiassistant.provider', 'openai'));
+    }
+
+    private function providerRequiresApiKey(): bool
+    {
+        $providers = config('aiassistant.providers', []);
+
+        return $providers[$this->provider]['requires_api_key'] ?? true;
     }
 
 }

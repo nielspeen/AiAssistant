@@ -41,12 +41,6 @@ class TranslateThreadsCommand extends Command
      */
     public function handle()
     {
-        $apiKey = config('aiassistant.api_key');
-        if (!$apiKey) {
-            $this->error('API key is not set');
-            return;
-        }
-
         $openAiService = new OpenAiService();
         $threads = $this->getThreads();
 
@@ -90,18 +84,18 @@ class TranslateThreadsCommand extends Command
 
             $this->info("Translating thread #{$thread->id}, language: " . array_key_first($languages));
 
-            // Send to OpenAI for summarization
+            // Send to AI provider for translation
             $response = $openAiService->sendResponseRequest(
                 tap(clone config('aiassistant.prompts.translate_thread'), function ($prompt) use ($threadData) {
                     $prompt->thread = $threadData;
                 }),
-                config('aiassistant.model'),
+                $openAiService->getConfiguredModel(),
                 config('aiassistant.max_tokens.translate_thread'),
                 config('aiassistant.text_formats.translate_thread')
             );
 
             if ($response["status"] != "completed") {
-                \Log::error("OpenAI response status is not completed for thread #{$thread->id}. Error: {$response['error']}");
+                \Log::error("AI provider response status is not completed for thread #{$thread->id}. Error: {$response['error']}");
                 continue;
             }
 
@@ -123,7 +117,7 @@ class TranslateThreadsCommand extends Command
             }
 
             if (!isset($content['translation']) || trim($content["translation"]) == "") {
-                \Log::error("Invalid response from OpenAI for thread #{$thread->id}: " . json_encode($content));
+                \Log::error("Invalid response from AI provider for thread #{$thread->id}: " . json_encode($content));
                 continue;
             }
 

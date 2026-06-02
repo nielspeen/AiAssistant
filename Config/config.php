@@ -1,10 +1,76 @@
 <?php
 
 return [
-    // OpenAI API key - specify in .env
-    'api_key' => env('OPENAI_API_KEY'),
+    // Provider settings can be managed from the AI Assistant settings page.
+    'provider' => env('AI_ASSISTANT_PROVIDER', 'openai'),
 
-    // OpenAI model - override in .env if desired
+    'providers' => [
+        'openai' => [
+            'name' => 'OpenAI',
+            'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+            'requires_api_key' => true,
+        ],
+        'openrouter' => [
+            'name' => 'OpenRouter',
+            'base_url' => 'https://openrouter.ai/api/v1',
+            'requires_api_key' => true,
+        ],
+        'groq' => [
+            'name' => 'Groq',
+            'base_url' => 'https://api.groq.com/openai/v1',
+            'requires_api_key' => true,
+        ],
+        'together' => [
+            'name' => 'Together AI',
+            'base_url' => 'https://api.together.xyz/v1',
+            'requires_api_key' => true,
+        ],
+        'fireworks' => [
+            'name' => 'Fireworks AI',
+            'base_url' => 'https://api.fireworks.ai/inference/v1',
+            'requires_api_key' => true,
+        ],
+        'mistral' => [
+            'name' => 'Mistral AI',
+            'base_url' => 'https://api.mistral.ai/v1',
+            'requires_api_key' => true,
+        ],
+        'deepseek' => [
+            'name' => 'DeepSeek',
+            'base_url' => 'https://api.deepseek.com',
+            'requires_api_key' => true,
+        ],
+        'xai' => [
+            'name' => 'xAI',
+            'base_url' => 'https://api.x.ai/v1',
+            'requires_api_key' => true,
+        ],
+        'perplexity' => [
+            'name' => 'Perplexity',
+            'base_url' => 'https://api.perplexity.ai',
+            'requires_api_key' => true,
+        ],
+        'ollama' => [
+            'name' => 'Ollama',
+            'base_url' => 'http://localhost:11434/v1',
+            'requires_api_key' => false,
+        ],
+        'lmstudio' => [
+            'name' => 'LM Studio',
+            'base_url' => 'http://localhost:1234/v1',
+            'requires_api_key' => false,
+        ],
+        'custom' => [
+            'name' => 'Custom OpenAI-compatible',
+            'base_url' => env('AI_ASSISTANT_BASE_URL', 'https://api.openai.com/v1'),
+            'requires_api_key' => false,
+        ],
+    ],
+
+    // Legacy fallback only. New installations should save the API key from Settings > AI Assistant.
+    'legacy_api_key' => env('OPENAI_API_KEY'),
+
+    // Model - override in .env or save in the AI Assistant settings page.
     'model' => env('OPENAI_MODEL', 'gpt-4.1-nano'),
     // At the time of writing gpt-5-nano and gpt-5-mini are disobedient, creating long responses with lots of filler.
     // I found gpt-4.1-nano and gpt-4.1-mini to more obedient and faster.
