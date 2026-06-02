@@ -6,6 +6,9 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Database\Eloquent\Factory;
+use Modules\AiAssistant\Console\DraftReplyCommand;
+use Modules\AiAssistant\Console\IndexDocumentsCommand;
+use Modules\AiAssistant\Console\SearchDocumentsCommand;
 use Modules\AiAssistant\Console\TranslateThreadsCommand;
 use Modules\AiAssistant\Console\SummarizeConversationsCommand;
 
@@ -48,6 +51,11 @@ class AiAssistantServiceProvider extends ServiceProvider
             return $styles;
         });
 
+        \Eventy::addFilter('javascripts', function ($javascripts) {
+            $javascripts[] = \Module::getPublicPath(AI_ASSISTANT_MODULE).'/js/aiassistant.js';
+            return $javascripts;
+        });
+
         \Eventy::addAction('conversations_table.preview_prepend', function ($conversation) {
             if (isset($conversation->ai_assistant) && $conversation->ai_assistant !== null) {
                 $aiData = json_decode($conversation->ai_assistant, true);
@@ -81,6 +89,23 @@ class AiAssistantServiceProvider extends ServiceProvider
             }
         }, 20, 5);
 
+        \Eventy::addAction('conversation.action_buttons', function ($conversation, $mailbox) {
+            if (auth()->user() && auth()->user()->can('view', $conversation)) {
+                echo View::make('aiassistant::draft_action', [
+                    'conversation' => $conversation,
+                    'mailbox' => $mailbox,
+                ]);
+            }
+        }, 20, 2);
+
+        \Eventy::addAction('reply_form.after', function ($conversation) {
+            if (auth()->user() && auth()->user()->can('view', $conversation)) {
+                echo View::make('aiassistant::draft_panel', [
+                    'conversation' => $conversation,
+                ]);
+            }
+        }, 20, 1);
+
 
         \Eventy::addFilter('settings.sections', function ($sections) {
             $sections[AI_ASSISTANT_MODULE] = ['title' => __('AI Assistant'), 'icon' => 'cloud', 'order' => 600];
@@ -99,6 +124,14 @@ class AiAssistantServiceProvider extends ServiceProvider
             $settings['aiassistant.api_key'] = \Helper::decrypt(\Option::get('aiassistant.api_key', ''));
             $settings['aiassistant.base_url'] = \Option::get('aiassistant.base_url', '');
             $settings['aiassistant.model'] = \Option::get('aiassistant.model', config('aiassistant.model'));
+            $settings['aiassistant.documentation.embedding_provider'] = $this->configuredEmbeddingProvider();
+            $settings['aiassistant.documentation.embedding_api_key'] = \Helper::decrypt(\Option::get('aiassistant.documentation.embedding_api_key', ''));
+            $settings['aiassistant.documentation.embedding_base_url'] = \Option::get('aiassistant.documentation.embedding_base_url', '');
+            $settings['aiassistant.documentation.embedding_model'] = trim(\Option::get('aiassistant.documentation.embedding_model', '')) ?: $this->defaultEmbeddingModel();
+            $settings['aiassistant.documentation.chunk_size'] = \Option::get('aiassistant.documentation.chunk_size', config('aiassistant.documentation.chunk_size', 3000));
+            $settings['aiassistant.documentation.chunk_overlap'] = \Option::get('aiassistant.documentation.chunk_overlap', config('aiassistant.documentation.chunk_overlap', 400));
+            $settings['aiassistant.documentation.retrieval_limit'] = \Option::get('aiassistant.documentation.retrieval_limit', config('aiassistant.documentation.retrieval_limit', 5));
+            $settings['aiassistant.documentation.enabled'] = $this->providerSupportsEmbeddings();
             $settings['aiassistant.summary_conversation_threshold'] = \Option::get('aiassistant.summary_conversation_threshold', 3);
             $settings['aiassistant.translation_language'] = \Option::get('aiassistant.translation_language', 'en');
 
@@ -115,6 +148,10 @@ class AiAssistantServiceProvider extends ServiceProvider
                     'safe_password' => true,
                     'encrypt' => true,
                 ],
+                'aiassistant.documentation.embedding_api_key' => [
+                    'safe_password' => true,
+                    'encrypt' => true,
+                ],
             ];
 
             return $params;
@@ -127,14 +164,55 @@ class AiAssistantServiceProvider extends ServiceProvider
 
             $settings_input = $request->settings;
 
-            foreach (['aiassistant.provider', 'aiassistant.api_key', 'aiassistant.base_url', 'aiassistant.model'] as $setting) {
+            foreach ([
+                'aiassistant.provider',
+                'aiassistant.api_key',
+                'aiassistant.base_url',
+                'aiassistant.model',
+                'aiassistant.documentation.embedding_provider',
+                'aiassistant.documentation.embedding_api_key',
+                'aiassistant.documentation.embedding_base_url',
+                'aiassistant.documentation.embedding_model',
+            ] as $setting) {
                 if (isset($settings_input[$setting])) {
                     $settings_input[$setting] = trim($settings_input[$setting]);
                 }
             }
 
+            if (isset($settings_input['aiassistant.provider'])) {
+                $settings_input['aiassistant.provider'] = $this->normalizeProvider($settings_input['aiassistant.provider']);
+            }
+
+            if (isset($settings_input['aiassistant.documentation.embedding_provider'])) {
+                $settings_input['aiassistant.documentation.embedding_provider'] = $this->normalizeEmbeddingProvider($settings_input['aiassistant.documentation.embedding_provider']);
+            }
+
+            if (isset($settings_input['aiassistant.documentation.embedding_model'])) {
+                $provider = $settings_input['aiassistant.documentation.embedding_provider'] ?? $this->configuredEmbeddingProvider();
+                $provider = $this->resolvedEmbeddingProvider($provider);
+                $settings_input['aiassistant.documentation.embedding_model'] = $this->normalizeEmbeddingModel(
+                    $provider,
+                    $settings_input['aiassistant.documentation.embedding_model']
+                );
+            }
+
             if (!empty($settings_input['aiassistant.base_url'])) {
                 $settings_input['aiassistant.base_url'] = rtrim($settings_input['aiassistant.base_url'], '/');
+            }
+
+            if (!empty($settings_input['aiassistant.documentation.embedding_base_url'])) {
+                $settings_input['aiassistant.documentation.embedding_base_url'] = rtrim($settings_input['aiassistant.documentation.embedding_base_url'], '/');
+            }
+
+            foreach ([
+                'aiassistant.documentation.chunk_size' => [500, 20000],
+                'aiassistant.documentation.chunk_overlap' => [0, 5000],
+                'aiassistant.documentation.retrieval_limit' => [1, 20],
+            ] as $setting => $bounds) {
+                if (isset($settings_input[$setting])) {
+                    $value = intval($settings_input[$setting]);
+                    $settings_input[$setting] = max($bounds[0], min($bounds[1], $value));
+                }
             }
 
             $request->merge(['settings' => $settings_input]);
@@ -201,6 +279,52 @@ class AiAssistantServiceProvider extends ServiceProvider
             __DIR__.'/../Config/config.php',
             'aiassistant'
         );
+        $this->registerProviderDefaults();
+    }
+
+    protected function registerProviderDefaults()
+    {
+        $moduleConfig = require __DIR__.'/../Config/config.php';
+        $defaultProviders = $moduleConfig['providers'] ?? [];
+        $providers = config('aiassistant.providers', []);
+
+        foreach ($defaultProviders as $provider => $defaults) {
+            $current = $providers[$provider] ?? [];
+
+            foreach ($defaults as $key => $value) {
+                if (in_array($key, ['supports_embeddings', 'embedding_model'])) {
+                    $current[$key] = $value;
+                } elseif (!array_key_exists($key, $current)) {
+                    $current[$key] = $value;
+                }
+            }
+
+            $providers[$provider] = $current;
+        }
+
+        config(['aiassistant.providers' => $providers]);
+
+        $documentation = config('aiassistant.documentation', []);
+
+        foreach (($moduleConfig['documentation'] ?? []) as $key => $value) {
+            if (!array_key_exists($key, $documentation)) {
+                $documentation[$key] = $value;
+            }
+        }
+
+        config(['aiassistant.documentation' => $documentation]);
+
+        foreach (['max_tokens', 'prompts', 'text_formats'] as $section) {
+            $current = config('aiassistant.'.$section, []);
+
+            foreach (($moduleConfig[$section] ?? []) as $key => $value) {
+                if (!isset($current[$key])) {
+                    $current[$key] = $value;
+                }
+            }
+
+            config(['aiassistant.'.$section => $current]);
+        }
     }
 
     protected function importLegacyApiKey()
@@ -225,6 +349,80 @@ class AiAssistantServiceProvider extends ServiceProvider
         } catch (\Exception $e) {
             // Ignore import failures; users can save a key from settings.
         }
+    }
+
+    protected function providerSupportsEmbeddings()
+    {
+        $provider = $this->resolvedEmbeddingProvider();
+        $providers = config('aiassistant.providers', []);
+
+        return !empty($providers[$provider]['supports_embeddings']);
+    }
+
+    protected function defaultEmbeddingModel()
+    {
+        $configured = config('aiassistant.documentation.embedding_model');
+
+        if ($configured) {
+            return $this->normalizeEmbeddingModel($this->resolvedEmbeddingProvider(), $configured);
+        }
+
+        $provider = $this->resolvedEmbeddingProvider();
+        $providers = config('aiassistant.providers', []);
+
+        return $this->normalizeEmbeddingModel($provider, $providers[$provider]['embedding_model'] ?? '');
+    }
+
+    protected function configuredProvider()
+    {
+        return $this->normalizeProvider(\Option::get('aiassistant.provider', config('aiassistant.provider', 'openai')));
+    }
+
+    protected function configuredEmbeddingProvider()
+    {
+        return $this->normalizeEmbeddingProvider(\Option::get(
+            'aiassistant.documentation.embedding_provider',
+            config('aiassistant.documentation.embedding_provider', 'same')
+        ));
+    }
+
+    protected function resolvedEmbeddingProvider($embeddingProvider = null)
+    {
+        $embeddingProvider = $embeddingProvider ?: $this->configuredEmbeddingProvider();
+
+        if ($embeddingProvider === 'same') {
+            return $this->configuredProvider();
+        }
+
+        return $this->normalizeProvider($embeddingProvider);
+    }
+
+    protected function normalizeEmbeddingProvider($provider)
+    {
+        $provider = strtolower(trim((string) $provider));
+
+        if ($provider === 'same') {
+            return 'same';
+        }
+
+        return $this->normalizeProvider($provider);
+    }
+
+    protected function normalizeProvider($provider)
+    {
+        $provider = strtolower(trim((string) $provider));
+        $providers = config('aiassistant.providers', []);
+
+        if (!$provider || !array_key_exists($provider, $providers)) {
+            return config('aiassistant.provider', 'openai');
+        }
+
+        return $provider;
+    }
+
+    protected function normalizeEmbeddingModel($provider, $model)
+    {
+        return trim((string) $model);
     }
 
     /**
@@ -275,6 +473,9 @@ class AiAssistantServiceProvider extends ServiceProvider
      */
     public function registerCommands()
     {
+        $this->commands(DraftReplyCommand::class);
+        $this->commands(IndexDocumentsCommand::class);
+        $this->commands(SearchDocumentsCommand::class);
         $this->commands(TranslateThreadsCommand::class);
         $this->commands(SummarizeConversationsCommand::class);
     }

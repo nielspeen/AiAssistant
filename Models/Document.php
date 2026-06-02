@@ -54,7 +54,7 @@ class Document extends Model
 
     public function markdownUrl(): string
     {
-        return rtrim($this->source_url, '/') . '.md';
+        return static::markdownUrlFor($this->source_url);
     }
 
     public function localizedUrl(string $locale): string
@@ -106,6 +106,11 @@ class Document extends Model
         }
 
         return $urls;
+    }
+
+    public static function markdownUrlFor(string $sourceUrl): string
+    {
+        return rtrim(static::normalizeSourceUrl($sourceUrl), '/') . '.md';
     }
 
     private function decodeJsonAttribute($value): array

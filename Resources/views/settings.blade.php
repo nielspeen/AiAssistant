@@ -4,6 +4,13 @@
     <input type="hidden" name="settings[dummy]" value="1" />
 
 
+    <div class="form-group margin-top">
+        <div class="col-sm-6 col-sm-offset-2">
+            <a href="{{ route('aiassistant.documents') }}" class="btn btn-bordered">{{ __('Manage Documentation') }}</a>
+        </div>
+    </div>
+
+
     <h3 class="subheader">{{ __('Provider') }}</h3>
 
     <div class="form-group margin-top">
@@ -39,6 +46,77 @@
         <div class="col-sm-6">
             <input id="aiassistant_model" type="text" class="form-control input-sized" name="settings[aiassistant.model]" value="{{ $settings['aiassistant.model'] }}" maxlength="255">
             <div class="form-help">{{ __('Enter the model identifier from the selected provider.') }}</div>
+        </div>
+    </div>
+
+
+    <h3 class="subheader">{{ __('Documentation') }}</h3>
+
+    @if (!$settings['aiassistant.documentation.enabled'])
+        <div class="form-group">
+            <div class="col-sm-8 col-sm-offset-2">
+                <div class="alert alert-warning margin-bottom-0">
+                    {{ __('The selected documentation embedding provider does not support embeddings, so documentation search and reply drafting with documentation are disabled. Summaries and translations will continue to work.') }}
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <div class="form-group">
+        <label for="aiassistant_embedding_provider" class="col-sm-2 control-label">{{ __('Embedding Provider') }}</label>
+        <div class="col-sm-6">
+            <select name="settings[aiassistant.documentation.embedding_provider]" class="form-control input-sized" id="aiassistant_embedding_provider">
+                <option value="same" {{ $settings['aiassistant.documentation.embedding_provider'] == 'same' ? 'selected' : '' }}>{{ __('Same as AI Provider') }}</option>
+                @foreach (config('aiassistant.providers', []) as $provider_key => $provider)
+                    <option value="{{ $provider_key }}" {{ $settings['aiassistant.documentation.embedding_provider'] == $provider_key ? 'selected' : '' }}>{{ $provider['name'] }}</option>
+                @endforeach
+            </select>
+            <div class="form-help">{{ __('Choose a separate provider for documentation embeddings, or reuse the AI provider.') }}</div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="aiassistant_embedding_api_key" class="col-sm-2 control-label">{{ __('Embedding API Key') }}</label>
+        <div class="col-sm-6">
+            <input id="aiassistant_embedding_api_key" type="password" class="form-control input-sized" name="settings[aiassistant.documentation.embedding_api_key]" value="{{ \Helper::safePassword($settings['aiassistant.documentation.embedding_api_key']) }}" autocomplete="new-password">
+            <div class="form-help">{{ __('Leave blank when reusing the AI provider key. Leave the masked value unchanged to keep the current key.') }}</div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="aiassistant_embedding_base_url" class="col-sm-2 control-label">{{ __('Embedding Base URL') }}</label>
+        <div class="col-sm-6">
+            <input id="aiassistant_embedding_base_url" type="url" class="form-control input-sized" name="settings[aiassistant.documentation.embedding_base_url]" value="{{ $settings['aiassistant.documentation.embedding_base_url'] }}" placeholder="{{ config('aiassistant.providers.digitalocean.base_url') }}">
+            <div class="form-help">{{ __('Optional. Leave blank to use the selected embedding provider default.') }}</div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="aiassistant_embedding_model" class="col-sm-2 control-label">{{ __('Embedding Model') }}</label>
+        <div class="col-sm-6">
+            <input id="aiassistant_embedding_model" type="text" class="form-control input-sized" name="settings[aiassistant.documentation.embedding_model]" value="{{ $settings['aiassistant.documentation.embedding_model'] }}" maxlength="255">
+            <div class="form-help">{{ __('DigitalOcean default: qwen3-embedding-0.6b.') }}</div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="aiassistant_chunk_size" class="col-sm-2 control-label">{{ __('Chunk Size') }}</label>
+        <div class="col-sm-6">
+            <input id="aiassistant_chunk_size" type="number" class="form-control input-sized" name="settings[aiassistant.documentation.chunk_size]" value="{{ $settings['aiassistant.documentation.chunk_size'] }}" min="500" max="20000">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="aiassistant_chunk_overlap" class="col-sm-2 control-label">{{ __('Chunk Overlap') }}</label>
+        <div class="col-sm-6">
+            <input id="aiassistant_chunk_overlap" type="number" class="form-control input-sized" name="settings[aiassistant.documentation.chunk_overlap]" value="{{ $settings['aiassistant.documentation.chunk_overlap'] }}" min="0" max="5000">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="aiassistant_retrieval_limit" class="col-sm-2 control-label">{{ __('Retrieval Limit') }}</label>
+        <div class="col-sm-6">
+            <input id="aiassistant_retrieval_limit" type="number" class="form-control input-sized" name="settings[aiassistant.documentation.retrieval_limit]" value="{{ $settings['aiassistant.documentation.retrieval_limit'] }}" min="1" max="20">
         </div>
     </div>
 

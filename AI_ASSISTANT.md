@@ -30,7 +30,7 @@ Decisions to make:
 1. Source type for the first version:
    - Decision: admins provide documentation URLs only.
    - The module fetches Markdown by appending `.md` to the documentation URL.
-   - Example: `https://12vpx.com/en/setup/android` becomes `https://12vpx.com/en/setup/android.md`.
+   - Example: `https://example.com/en/docs/article` becomes `https://example.com/en/docs/article.md`.
    - If an admin enters a URL ending in `.md`, normalize the stored public URL by removing `.md`.
    - The fetched Markdown becomes the canonical content to index.
    - Later: pasted text, file upload, help center sync.
@@ -165,10 +165,9 @@ Recommended first UI:
 
 Fields:
 
-1. Title.
-2. Mailbox.
-3. Canonical English public URL.
-4. Enabled.
+1. Mailbox.
+2. Canonical English public URL.
+3. Enabled.
 
 Optional display:
 
@@ -176,6 +175,7 @@ Optional display:
 2. Last indexed time.
 3. Chunk count.
 4. Last indexing error.
+5. Title parsed from Markdown front matter.
 
 Implementation options:
 
@@ -187,43 +187,42 @@ Implementation options:
 Done when:
 
 1. Admin can create, edit, disable, and delete URL-based docs.
-2. Admin can trigger reindexing.
-3. UI stays inside the AiAssistant module.
+2. The module fetches the `.md` URL on save and stores the Markdown title/content.
+3. Admin can trigger reindexing.
+4. UI stays inside the AiAssistant module.
 
-## Phase 4: Add Embedding Provider Settings
+## Phase 4: Add Documentation Indexing Settings
 
-Purpose: make documentation search work without assuming the chat provider also supports embeddings.
+Purpose: configure documentation indexing while using the same AI provider credentials as chat.
 
 Add settings:
 
-1. Embedding provider.
-2. Embedding base URL.
-3. Embedding API key.
-4. Embedding model.
-5. Chunk size.
-6. Chunk overlap.
-7. Retrieval result limit.
+1. Embedding model.
+2. Chunk size.
+3. Chunk overlap.
+4. Retrieval result limit.
 
 Recommended defaults:
 
-1. Embedding provider: OpenAI-compatible custom.
-2. Base URL: same as selected chat provider if blank.
-3. Model: provider-specific, editable.
+1. Use "Same as AI Provider" by default for backwards compatibility.
+2. Allow a separate documentation embedding provider, API key, base URL, and model.
+3. DigitalOcean Serverless Inference can be used for embeddings with `qwen3-embedding-0.6b`.
 4. Chunk size: around 800 tokens or 3,000 characters for MVP.
 5. Chunk overlap: around 100 tokens or 400 characters for MVP.
 6. Retrieval limit: 5 chunks.
 
-Security:
+Provider capability:
 
-1. Store embedding API key encrypted in the database.
-2. Do not instruct new users to store keys in `.env`.
-3. Allow local providers with no key.
+1. The module should know whether the selected documentation embedding provider supports embeddings.
+2. If the embedding provider does not support embeddings, disable documentation indexing and retrieval.
+3. Translation and summarization should continue to work without documentation features because they use the chat provider.
+4. xAI is marked as not supporting embeddings in the module preset. Its chat API works for summaries/translations, but documentation indexing should remain disabled until xAI exposes a reliable embedding model through the OpenAI-compatible embeddings endpoint for the selected account.
 
 Done when:
 
-1. Embedding settings save and load correctly.
-2. Embedding key is stored encrypted.
-3. Chat provider settings and embedding provider settings are separate.
+1. Documentation indexing settings save and load correctly.
+2. Embedding requests use the documentation embedding provider base URL and API key, unless "Same as AI Provider" is selected.
+3. Documentation features are disabled for embedding providers marked as not supporting embeddings.
 
 ## Phase 5: Build The Indexing Service
 
@@ -306,7 +305,7 @@ Purpose: find relevant chunks for a conversation or draft prompt.
 
 Create service:
 
-1. `DocumentationRetrievalService`
+1. `DocumentSearchService`
 
 Inputs:
 
@@ -336,7 +335,7 @@ Result shape:
 
 Done when:
 
-1. Retrieval returns relevant chunks for a sample question.
+1. Retrieval returns relevant chunks for a sample question. Implemented with `ai-assistant:search-documents`.
 2. Disabled documents are ignored.
 3. Chunks from old embedding models are ignored or clearly handled.
 
@@ -362,6 +361,7 @@ Done when:
 
 1. Admin can enter a question and see matching documentation chunks.
 2. Results include scores and document titles.
+3. CLI test command exists now; admin UI can be added after retrieval quality is validated.
 
 ## Phase 9: Add Draft Reply Action
 
@@ -395,10 +395,11 @@ Prompt rules:
 
 Done when:
 
-1. User can click a button and receive a draft.
+1. CLI command exists: `ai-assistant:draft-reply {conversation-id}`.
 2. Draft is not sent automatically.
-3. UI shows which docs were used.
+3. Output shows which docs were used.
 4. Draft fails safely when documentation is missing.
+5. Conversation UI button and review panel exist; staff must explicitly insert the generated draft into the reply editor.
 
 ## Phase 10: Improve Grounding And Safety
 

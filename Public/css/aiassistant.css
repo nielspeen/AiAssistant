@@ -27,3 +27,57 @@
     padding: 1px 5px;
     border-radius: 5px;
 }
+
+.ai-assistant-draft-action {
+    color: #3197d6;
+    cursor: pointer;
+}
+
+.ai-assistant-draft-panel {
+    margin: 12px 15px 0;
+    padding: 12px 14px;
+    border-left: 4px solid #6ac1ff;
+    background: #ebf3fb;
+}
+
+.ai-assistant-draft-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.ai-assistant-draft-meta {
+    color: #6f7f8f;
+    font-size: 12px;
+}
+
+.ai-assistant-draft-status {
+    margin-bottom: 8px;
+}
+
+.ai-assistant-draft-body {
+    white-space: pre-wrap;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.45;
+    background: #fff;
+    border: 1px solid #dce8f2;
+    padding: 10px;
+    margin: 8px 0;
+}
+
+.ai-assistant-draft-actions {
+    margin: 8px 0;
+}
+
+.ai-assistant-draft-notes,
+.ai-assistant-draft-docs {
+    margin-top: 10px;
+}
+
+.ai-assistant-draft-notes ul,
+.ai-assistant-draft-docs ul {
+    margin-bottom: 0;
+    padding-left: 18px;
+}
