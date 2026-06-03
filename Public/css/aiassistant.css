@@ -57,7 +57,6 @@
 }
 
 .ai-assistant-draft-body {
-    white-space: pre-wrap;
     font-family: inherit;
     font-size: 13px;
     line-height: 1.45;
@@ -67,8 +66,36 @@
     margin: 8px 0;
 }
 
+.ai-assistant-draft-body p,
+.ai-assistant-draft-english-body p {
+    margin: 0 0 8px;
+}
+
+.ai-assistant-draft-body p:last-child,
+.ai-assistant-draft-english-body p:last-child {
+    margin-bottom: 0;
+}
+
+.ai-assistant-draft-body ul,
+.ai-assistant-draft-body ol {
+    margin: 0 0 8px;
+    padding-left: 20px;
+}
+
 .ai-assistant-draft-actions {
     margin: 8px 0;
+}
+
+.ai-assistant-draft-english {
+    background: #fff;
+    border: 1px solid #dce8f2;
+    padding: 10px;
+    margin: 8px 0;
+}
+
+.ai-assistant-draft-english-body {
+    margin-top: 6px;
+    white-space: pre-wrap;
 }
 
 .ai-assistant-draft-notes,

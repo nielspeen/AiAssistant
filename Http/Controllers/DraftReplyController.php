@@ -55,6 +55,7 @@ class DraftReplyController extends Controller
         return response()->json([
             'status' => 'success',
             'draft' => $draft['draft'],
+            'english_translation' => $draft['english_translation'],
             'language' => $draft['language'],
             'confidence' => $draft['confidence'],
             'documentation_urls' => $draft['documentation_urls'],

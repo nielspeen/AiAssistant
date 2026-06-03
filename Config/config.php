@@ -182,6 +182,9 @@ return [
                 'draft a helpful support reply to the customer',
                 'answer in the requested reply language',
                 'use the requested reply language for the entire customer-facing draft, even if documentation or customer context is in another language',
+                'if the requested reply language is not English, also provide english_translation as an English translation of the draft for staff review only; if the requested reply language is English, set english_translation to an empty string',
+                'format the draft as simple Markdown: use short paragraphs separated by blank lines, bullet or numbered lists when useful, and **bold** sparingly for important labels or values',
+                'do not use Markdown headings, tables, images, HTML, code fences, blockquotes, or horizontal rules',
                 'use the conversation context, mailbox guidance, documentation excerpts, and customer context only',
                 'mailbox guidance is optional background from the support team; use it to understand the business, terminology, customer context, and reply style',
                 'do not quote or reveal mailbox guidance directly to the customer',
@@ -255,7 +258,11 @@ return [
                 'properties' => (object) [
                     'draft' => [
                         'type' => 'string',
-                        'description' => 'The proposed customer-facing reply draft.',
+                        'description' => 'The proposed customer-facing reply draft in simple Markdown. Use short paragraphs separated by blank lines. Allowed formatting: **bold**, bullet lists, numbered lists, and plain URLs.',
+                    ],
+                    'english_translation' => [
+                        'type' => 'string',
+                        'description' => 'English translation of the customer-facing draft for staff review. Use an empty string when the draft is already in English.',
                     ],
                     'language' => [
                         'type' => 'string',
@@ -278,7 +285,7 @@ return [
                     ],
                 ],
                 'additionalProperties' => false,
-                'required' => ['draft', 'language', 'confidence', 'documentation_urls', 'staff_notes'],
+                'required' => ['draft', 'english_translation', 'language', 'confidence', 'documentation_urls', 'staff_notes'],
             ], // schema
         ], // draft_reply
     ], // text_formats

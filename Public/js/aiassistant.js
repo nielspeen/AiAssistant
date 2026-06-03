@@ -9,8 +9,92 @@
         window.console.debug('AI Assistant UI loaded');
     }
 
-    function draftTextToHtml(text) {
-        return $('<div/>').text(text || '').html().replace(/\n/g, '<br>');
+    function escapeHtml(text) {
+        return $('<div/>').text(text || '').html();
+    }
+
+    function inlineMarkdownToHtml(text) {
+        var html = escapeHtml(text);
+
+        html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+        return html;
+    }
+
+    function markdownToHtml(text) {
+        var lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
+        var html = '';
+        var paragraph = [];
+        var listType = '';
+
+        function closeParagraph() {
+            if (!paragraph.length) {
+                return;
+            }
+
+            html += '<p>' + paragraph.map(inlineMarkdownToHtml).join('<br>') + '</p>';
+            paragraph = [];
+        }
+
+        function closeList() {
+            if (!listType) {
+                return;
+            }
+
+            html += '</' + listType + '>';
+            listType = '';
+        }
+
+        $.each(lines, function (i, rawLine) {
+            var line = $.trim(rawLine || '');
+            var unordered = line.match(/^[-*]\s+(.+)$/);
+            var ordered = line.match(/^\d+[.)]\s+(.+)$/);
+
+            if (!line) {
+                closeParagraph();
+                closeList();
+                return;
+            }
+
+            if (unordered || ordered) {
+                var type = unordered ? 'ul' : 'ol';
+                closeParagraph();
+
+                if (listType && listType !== type) {
+                    closeList();
+                }
+
+                if (!listType) {
+                    listType = type;
+                    html += '<' + type + '>';
+                }
+
+                html += '<li>' + inlineMarkdownToHtml((unordered || ordered)[1]) + '</li>';
+                return;
+            }
+
+            closeList();
+            paragraph.push(line);
+        });
+
+        closeParagraph();
+        closeList();
+
+        return html || '<p></p>';
+    }
+
+    function setHiddenField($form, name, value) {
+        var $field = $form.find('input[name="' + name + '"]');
+
+        if (!$field.length) {
+            $field = $('<input/>').attr({
+                type: 'hidden',
+                name: name
+            }).appendTo($form);
+        }
+
+        $field.val(value || '');
     }
 
     function csrfToken() {
@@ -43,7 +127,11 @@
                     '<span class="ai-assistant-draft-meta"></span>' +
                 '</div>' +
                 '<div class="ai-assistant-draft-status text-muted"></div>' +
-                '<pre class="ai-assistant-draft-body hidden"></pre>' +
+                '<div class="ai-assistant-draft-body hidden"></div>' +
+                '<div class="ai-assistant-draft-english hidden">' +
+                    '<strong>English Translation</strong>' +
+                    '<div class="ai-assistant-draft-english-body"></div>' +
+                '</div>' +
                 '<div class="ai-assistant-draft-actions hidden">' +
                     '<button type="button" class="btn btn-primary btn-sm ai-assistant-insert-draft">Insert into Reply</button> ' +
                     '<button type="button" class="btn btn-default btn-sm ai-assistant-regenerate-draft">Regenerate</button>' +
@@ -61,11 +149,13 @@
     function resetPanel($panel) {
         $panel.find('.ai-assistant-draft-meta').text('');
         $panel.find('.ai-assistant-draft-status').removeClass('text-danger').addClass('text-muted').text('');
-        $panel.find('.ai-assistant-draft-body').addClass('hidden').text('');
+        $panel.find('.ai-assistant-draft-body').addClass('hidden').empty();
+        $panel.find('.ai-assistant-draft-english').addClass('hidden').find('.ai-assistant-draft-english-body').empty();
         $panel.find('.ai-assistant-draft-actions').addClass('hidden');
         $panel.find('.ai-assistant-draft-notes').addClass('hidden').find('ul').empty();
         $panel.find('.ai-assistant-draft-docs').addClass('hidden').find('ul').empty();
         $panel.removeData('draft-text');
+        $panel.removeData('english-translation');
     }
 
     function showReplyFormForDraft() {
@@ -90,14 +180,21 @@
         var language = response.language || 'unknown';
         var confidence = response.confidence || 'unknown';
         $panel.data('draft-text', draft);
+        $panel.data('english-translation', response.english_translation || '');
         $panel.find('.ai-assistant-draft-meta')
             .empty()
             .append($('<span/>').text(language))
             .append(document.createTextNode(' · '))
             .append($('<span/>').attr('title', 'Confidence level').text(confidence));
         $panel.find('.ai-assistant-draft-status').text(response.documentation_status || '');
-        $panel.find('.ai-assistant-draft-body').removeClass('hidden').text(draft);
+        $panel.find('.ai-assistant-draft-body').removeClass('hidden').html(markdownToHtml(draft));
         $panel.find('.ai-assistant-draft-actions').removeClass('hidden');
+
+        if (response.english_translation) {
+            $panel.find('.ai-assistant-draft-english').removeClass('hidden')
+                .find('.ai-assistant-draft-english-body')
+                .text(response.english_translation);
+        }
 
         if (response.staff_notes && response.staff_notes.length) {
             var $notes = $panel.find('.ai-assistant-draft-notes').removeClass('hidden').find('ul');
@@ -284,6 +381,8 @@
 
         var $panel = $(this).closest('.ai-assistant-draft-panel');
         var draft = $panel.data('draft-text') || '';
+        var englishTranslation = $panel.data('english-translation') || '';
+        var $form = $('.form-reply:first');
 
         if (!draft) {
             return;
@@ -292,11 +391,14 @@
         showReplyFormForDraft();
 
         if (typeof window.setReplyBody === 'function') {
-            window.setReplyBody(draftTextToHtml(draft));
+            window.setReplyBody(markdownToHtml(draft));
         } else if ($('#body').length && $('#body').data('summernote')) {
-            $('#body').summernote('code', draftTextToHtml(draft));
+            $('#body').summernote('code', markdownToHtml(draft));
         } else {
             $('#body').val(draft);
         }
+
+        setHiddenField($form, 'aiassistant_draft_inserted', '1');
+        setHiddenField($form, 'aiassistant_draft_english_translation', englishTranslation);
     });
 })(window.jQuery);

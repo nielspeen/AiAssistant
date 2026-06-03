@@ -65,6 +65,7 @@ class DraftReplyService
 
         return [
             'draft' => trim($content['draft'] ?? ''),
+            'english_translation' => trim($content['english_translation'] ?? ''),
             'language' => $content['language'] ?? $locale,
             'confidence' => $content['confidence'] ?? 'low',
             'documentation_urls' => $content['documentation_urls'] ?? [],

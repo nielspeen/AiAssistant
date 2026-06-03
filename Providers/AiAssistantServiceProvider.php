@@ -107,6 +107,34 @@ class AiAssistantServiceProvider extends ServiceProvider
             }
         }, 20, 1);
 
+        \Eventy::addAction('thread.before_save_from_request', function ($thread, $request) {
+            $translation = trim((string) $request->input('aiassistant_draft_english_translation', ''));
+
+            if (!$request->input('aiassistant_draft_inserted') || $translation === '') {
+                return;
+            }
+
+            if ((int) $thread->type !== \App\Thread::TYPE_MESSAGE) {
+                return;
+            }
+
+            $aiData = [];
+
+            if (!empty($thread->ai_assistant)) {
+                $decoded = json_decode($thread->ai_assistant, true);
+
+                if (is_array($decoded)) {
+                    $aiData = $decoded;
+                }
+            }
+
+            $aiData['translation'] = $translation;
+            $aiData['translation_source'] = 'draft_reply';
+
+            $thread->ai_assistant = json_encode($aiData);
+            $thread->ai_assistant_updated_at = now();
+        }, 20, 2);
+
 
         \Eventy::addFilter('settings.sections', function ($sections) {
             $sections[AI_ASSISTANT_MODULE] = ['title' => __('AI Assistant'), 'icon' => 'cloud', 'order' => 600];

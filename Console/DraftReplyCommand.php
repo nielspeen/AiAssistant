@@ -48,6 +48,14 @@ class DraftReplyCommand extends Command
         $this->line('Draft');
         $this->line('-----');
         $this->line($result['draft']);
+
+        if (!empty($result['english_translation'])) {
+            $this->line('');
+            $this->line('English Translation');
+            $this->line('-------------------');
+            $this->line($result['english_translation']);
+        }
+
         $this->line('');
         $this->line('Language: ' . $result['language']);
         $this->line('Confidence: ' . $result['confidence']);

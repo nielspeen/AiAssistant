@@ -7,7 +7,12 @@
 
     <div class="ai-assistant-draft-status text-muted"></div>
 
-    <pre class="ai-assistant-draft-body hidden"></pre>
+    <div class="ai-assistant-draft-body hidden"></div>
+
+    <div class="ai-assistant-draft-english hidden">
+        <strong>{{ __('English Translation') }}</strong>
+        <div class="ai-assistant-draft-english-body"></div>
+    </div>
 
     <div class="ai-assistant-draft-actions hidden">
         <button type="button" class="btn btn-primary btn-sm ai-assistant-insert-draft">{{ __('Insert into Reply') }}</button>
