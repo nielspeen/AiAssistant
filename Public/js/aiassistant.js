@@ -87,8 +87,14 @@
         resetPanel($panel);
 
         var draft = response.draft || '';
+        var language = response.language || 'unknown';
+        var confidence = response.confidence || 'unknown';
         $panel.data('draft-text', draft);
-        $panel.find('.ai-assistant-draft-meta').text((response.language || 'unknown') + ' · ' + (response.confidence || 'unknown'));
+        $panel.find('.ai-assistant-draft-meta')
+            .empty()
+            .append($('<span/>').text(language))
+            .append(document.createTextNode(' · '))
+            .append($('<span/>').attr('title', 'Confidence level').text(confidence));
         $panel.find('.ai-assistant-draft-status').text(response.documentation_status || '');
         $panel.find('.ai-assistant-draft-body').removeClass('hidden').text(draft);
         $panel.find('.ai-assistant-draft-actions').removeClass('hidden');

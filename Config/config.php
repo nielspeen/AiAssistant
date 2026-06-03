@@ -263,7 +263,7 @@ return [
                     'confidence' => [
                         'type' => 'string',
                         'enum' => ['low', 'medium', 'high'],
-                        'description' => 'Confidence that the draft is grounded in the conversation and documentation.',
+                        'description' => 'Confidence that the draft is grounded in the conversation, documentation, mailbox guidance, and customer context.',
                     ],
                     'documentation_urls' => [
                         'type' => 'array',
