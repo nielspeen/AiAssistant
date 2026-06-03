@@ -187,6 +187,7 @@ return [
                 'translate to: ' . \Option::get('aiassistant.translation_language', 'en'),
                 'do not change the content of the thread',
                 'do not add any additional information',
+                'translation must be only the translated body text, not JSON, not an object, and must not include author/body keys',
                 'if the thread is already entirely in the target language, set same_language=true and leave translation empty.'
             ],
         ], // translate_thread

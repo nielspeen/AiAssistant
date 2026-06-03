@@ -12,6 +12,7 @@ use Modules\AiAssistant\Console\IndexDocumentsCommand;
 use Modules\AiAssistant\Console\SearchDocumentsCommand;
 use Modules\AiAssistant\Console\TranslateThreadsCommand;
 use Modules\AiAssistant\Console\SummarizeConversationsCommand;
+use Modules\AiAssistant\Services\HelperService;
 
 require_once __DIR__.'/../vendor/autoload.php';
 
@@ -81,9 +82,11 @@ class AiAssistantServiceProvider extends ServiceProvider
         \Eventy::addAction('thread.before_body', function ($thread, $loop, $threads, $conversation, $mailbox) {
             if (isset($thread->ai_assistant) && $thread->ai_assistant !== null) {
                 $aiData = json_decode($thread->ai_assistant, true);
-                if (isset($aiData['translation']) && trim($aiData['translation']) != '') {
+                $translation = HelperService::plainTranslation($aiData['translation'] ?? '');
+
+                if ($translation !== '') {
                     echo View::make('aiassistant::translation', [
-                        'translation' => $aiData['translation'],
+                        'translation' => $translation,
                         'updated_at' => Carbon::parse($thread->ai_assistant_updated_at)
                     ]);
                 }
@@ -108,7 +111,7 @@ class AiAssistantServiceProvider extends ServiceProvider
         }, 20, 1);
 
         \Eventy::addAction('thread.before_save_from_request', function ($thread, $request) {
-            $translation = trim((string) $request->input('aiassistant_draft_english_translation', ''));
+            $translation = HelperService::plainTranslation($request->input('aiassistant_draft_english_translation', ''));
 
             if (!$request->input('aiassistant_draft_inserted') || $translation === '') {
                 return;

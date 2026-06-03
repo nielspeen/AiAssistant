@@ -116,13 +116,15 @@ class TranslateThreadsCommand extends Command
                 continue;
             }
 
-            if (!isset($content['translation']) || trim($content["translation"]) == "") {
+            $translation = HelperService::plainTranslation($content['translation'] ?? '');
+
+            if ($translation === '') {
                 \Log::error("Invalid response from AI provider for thread #{$thread->id}: " . json_encode($content));
                 continue;
             }
 
 
-            $aiData['translation'] = $content['translation'];
+            $aiData['translation'] = $translation;
             $thread->ai_assistant = json_encode($aiData);
             $thread->ai_assistant_updated_at = now();
             $thread->save();
