@@ -147,6 +147,7 @@
     }
 
     function resetPanel($panel) {
+        clearDraftPolling($panel);
         $panel.find('.ai-assistant-draft-meta').text('');
         $panel.find('.ai-assistant-draft-status').removeClass('text-danger').addClass('text-muted').text('');
         $panel.find('.ai-assistant-draft-body').addClass('hidden').empty();
@@ -156,6 +157,16 @@
         $panel.find('.ai-assistant-draft-docs').addClass('hidden').find('ul').empty();
         $panel.removeData('draft-text');
         $panel.removeData('english-translation');
+        $panel.removeData('draft-poll-attempts');
+    }
+
+    function clearDraftPolling($panel) {
+        var timer = $panel.data('draft-poll-timer');
+
+        if (timer) {
+            window.clearTimeout(timer);
+            $panel.removeData('draft-poll-timer');
+        }
     }
 
     function showReplyFormForDraft() {
@@ -224,6 +235,46 @@
         }
     }
 
+    function pollDraft($panel, pollUrl) {
+        var attempts = ($panel.data('draft-poll-attempts') || 0) + 1;
+        $panel.data('draft-poll-attempts', attempts);
+
+        $.ajax({
+            method: 'GET',
+            url: pollUrl,
+            success: function (response) {
+                if (!response || response.status !== 'success') {
+                    showDraftError($panel, response && response.msg ? response.msg : 'Could not draft reply.', response && response.error ? response.error.detail : '');
+                    return;
+                }
+
+                if (response.draft_status === 'completed') {
+                    clearDraftPolling($panel);
+                    renderDraft($panel, response);
+                    return;
+                }
+
+                $panel.find('.ai-assistant-draft-status').text(response.message || 'Drafting...');
+
+                if (attempts >= 180) {
+                    showDraftError(
+                        $panel,
+                        'Draft is still running.',
+                        'The draft job has not completed after several minutes. Check that the FreeScout queue worker is running, then regenerate the draft if needed.'
+                    );
+                    return;
+                }
+
+                $panel.data('draft-poll-timer', window.setTimeout(function () {
+                    pollDraft($panel, pollUrl);
+                }, 2000));
+            },
+            error: function (xhr) {
+                showDraftError($panel, ajaxErrorMessage(xhr), ajaxErrorDetail(xhr));
+            }
+        });
+    }
+
     function ajaxErrorMessage(xhr) {
         if (xhr.responseJSON) {
             if (xhr.responseJSON.msg) {
@@ -236,6 +287,10 @@
         }
 
         if (xhr.status) {
+            if (xhr.status === 504) {
+                return 'Draft request timed out before FreeScout could return provider details.';
+            }
+
             return 'Request failed with HTTP ' + xhr.status + (xhr.statusText ? ' (' + xhr.statusText + ')' : '') + '.';
         }
 
@@ -262,6 +317,10 @@
 
         if (xhr.responseText && xhr.responseText.length < 1200) {
             return xhr.responseText;
+        }
+
+        if (xhr.status === 504) {
+            return 'The web server returned HTTP 504 Gateway Timeout. This usually means the AI provider request took longer than the web server timeout. The provider timeout is now shorter so future provider timeouts should return more details here.';
         }
 
         return '';
@@ -347,6 +406,12 @@
                     var message = response && response.msg ? response.msg : 'Could not draft reply.';
                     var detail = response && response.error && response.error.detail ? response.error.detail : '';
                     showDraftError($panel, message, detail);
+                    return;
+                }
+
+                if (response.poll_url) {
+                    $panel.find('.ai-assistant-draft-status').text('Queued...');
+                    pollDraft($panel, response.poll_url);
                     return;
                 }
 

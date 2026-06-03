@@ -5,17 +5,11 @@ namespace Modules\AiAssistant\Http\Controllers;
 use App\Conversation;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use Modules\AiAssistant\Services\DraftReplyService;
+use Modules\AiAssistant\Jobs\DraftReplyJob;
+use Modules\AiAssistant\Models\DraftJob;
 
 class DraftReplyController extends Controller
 {
-    private $draftReplyService;
-
-    public function __construct(DraftReplyService $draftReplyService)
-    {
-        $this->draftReplyService = $draftReplyService;
-    }
-
     public function store(Request $request, $id)
     {
         $conversation = Conversation::with('customer')->findOrFail((int) $id);
@@ -29,86 +23,76 @@ class DraftReplyController extends Controller
             'document_limit' => 'nullable|integer|min:1|max:10',
         ]);
 
-        try {
-            $draft = $this->draftReplyService->draft(
-                $conversation,
-                $data['locale'] ?? '',
-                (int) ($data['document_limit'] ?? 0)
-            );
-        } catch (\Throwable $e) {
-            \Log::error('AI Assistant draft reply failed', [
-                'conversation_id' => $conversation->id,
-                'exception' => get_class($e),
-                'message' => $e->getMessage(),
-            ]);
+        $draftJob = DraftJob::create([
+            'conversation_id' => (int) $conversation->id,
+            'user_id' => (int) auth()->user()->id,
+            'status' => DraftJob::STATUS_PENDING,
+            'locale' => (string) ($data['locale'] ?? ''),
+            'document_limit' => (int) ($data['document_limit'] ?? 0),
+        ]);
 
+        DraftReplyJob::dispatch((int) $draftJob->id)
+            ->onQueue(\Helper::QUEUE_DEFAULT);
+
+        return response()->json([
+            'status' => 'success',
+            'draft_status' => $draftJob->status,
+            'job_id' => $draftJob->id,
+            'poll_url' => route('aiassistant.draft_jobs.show', ['id' => $draftJob->id]),
+        ]);
+    }
+
+    public function show(Request $request, $id)
+    {
+        $draftJob = DraftJob::findOrFail((int) $id);
+        $conversation = Conversation::findOrFail((int) $draftJob->conversation_id);
+
+        if (!auth()->user()->can('view', $conversation)) {
+            abort(403);
+        }
+
+        if ((int) $draftJob->user_id !== (int) auth()->user()->id && !auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        if ($draftJob->status === DraftJob::STATUS_COMPLETED) {
+            $draft = $draftJob->result();
+
+            return response()->json(array_merge([
+                'status' => 'success',
+                'draft_status' => $draftJob->status,
+                'job_id' => $draftJob->id,
+            ], [
+                'draft' => $draft['draft'] ?? '',
+                'english_translation' => $draft['english_translation'] ?? '',
+                'language' => $draft['language'] ?? '',
+                'confidence' => $draft['confidence'] ?? 'low',
+                'documentation_urls' => $draft['documentation_urls'] ?? [],
+                'staff_notes' => $draft['staff_notes'] ?? [],
+                'retrieved_documents' => $draft['retrieved_documents'] ?? [],
+                'documentation_status' => $draft['documentation_status'] ?? '',
+                'customer_context_status' => $draft['customer_context_status'] ?? '',
+            ]));
+        }
+
+        if ($draftJob->status === DraftJob::STATUS_FAILED) {
             return response()->json([
                 'status' => 'error',
-                'msg' => $this->errorMessage($e),
+                'draft_status' => $draftJob->status,
+                'job_id' => $draftJob->id,
+                'msg' => $draftJob->error_message ?: 'Could not draft reply.',
                 'error' => [
-                    'type' => $this->errorType($e),
-                    'detail' => $e->getMessage(),
+                    'type' => $draftJob->error_type ?: 'server_error',
+                    'detail' => $draftJob->error_detail ?: '',
                 ],
             ], 500);
         }
 
         return response()->json([
             'status' => 'success',
-            'draft' => $draft['draft'],
-            'english_translation' => $draft['english_translation'],
-            'language' => $draft['language'],
-            'confidence' => $draft['confidence'],
-            'documentation_urls' => $draft['documentation_urls'],
-            'staff_notes' => $draft['staff_notes'],
-            'retrieved_documents' => $draft['retrieved_documents'],
-            'documentation_status' => $draft['documentation_status'],
-            'customer_context_status' => $draft['customer_context_status'],
+            'draft_status' => $draftJob->status,
+            'job_id' => $draftJob->id,
+            'message' => $draftJob->status === DraftJob::STATUS_RUNNING ? 'Drafting...' : 'Queued...',
         ]);
-    }
-
-    private function errorMessage(\Throwable $e): string
-    {
-        $message = $e->getMessage();
-
-        if (strpos($message, 'draft_reply') !== false || strpos($message, 'clone()') !== false) {
-            return 'Draft reply prompt configuration is missing or stale. Refresh the module config/cache and try again.';
-        }
-
-        if (strpos($message, 'API key') !== false) {
-            return $message;
-        }
-
-        if (strpos($message, 'HTTP error') !== false) {
-            return 'AI provider request failed: ' . $message;
-        }
-
-        if (strpos($message, 'documentation embedding provider') !== false) {
-            return $message;
-        }
-
-        return 'Could not draft reply: ' . $message;
-    }
-
-    private function errorType(\Throwable $e): string
-    {
-        $message = $e->getMessage();
-
-        if (strpos($message, 'draft_reply') !== false || strpos($message, 'clone()') !== false) {
-            return 'configuration';
-        }
-
-        if (strpos($message, 'API key') !== false) {
-            return 'missing_api_key';
-        }
-
-        if (strpos($message, 'HTTP error') !== false) {
-            return 'provider_http_error';
-        }
-
-        if (strpos($message, 'documentation embedding provider') !== false) {
-            return 'embedding_provider';
-        }
-
-        return 'server_error';
     }
 }

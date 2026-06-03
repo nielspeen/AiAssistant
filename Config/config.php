@@ -124,6 +124,20 @@ return [
         'max_guidance_chars' => 6000,
     ],
 
+    'provider_request' => [
+        'timeout' => 180,
+        'connect_timeout' => 15,
+        'embedding_timeout' => 60,
+        'embedding_connect_timeout' => 10,
+        'embedding_search_timeout' => 12,
+        'embedding_search_connect_timeout' => 5,
+        'embedding_attempts' => 3,
+        'embedding_search_attempts' => 3,
+        'embedding_retry_delay_ms' => 1000,
+        'embedding_search_retry_delay_ms' => 750,
+        'max_error_body_chars' => 2000,
+    ],
+
     // PROMPTS
 
     'prompts' => [

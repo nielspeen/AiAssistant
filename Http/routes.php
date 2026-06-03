@@ -10,6 +10,7 @@ Route::group([
     'middleware' => ['web', 'auth'],
 ], function () {
     Route::post('/ai-assistant/conversations/{id}/draft-reply', 'Modules\AiAssistant\Http\Controllers\DraftReplyController@store')->name('aiassistant.conversations.draft_reply');
+    Route::get('/ai-assistant/draft-jobs/{id}', 'Modules\AiAssistant\Http\Controllers\DraftReplyController@show')->name('aiassistant.draft_jobs.show');
 });
 
 Route::group([

@@ -33,7 +33,7 @@ class DocumentSearchService
         }
 
         $embeddingModel = $this->openAiService->getConfiguredEmbeddingModel();
-        $queryEmbedding = $this->openAiService->createEmbeddings([$query], $embeddingModel)[0] ?? [];
+        $queryEmbedding = $this->openAiService->createEmbeddings([$query], $embeddingModel, 'embedding_search')[0] ?? [];
 
         if (!$queryEmbedding) {
             throw new \Exception('Query embedding is empty');

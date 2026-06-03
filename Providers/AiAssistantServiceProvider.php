@@ -356,6 +356,16 @@ class AiAssistantServiceProvider extends ServiceProvider
 
         config(['aiassistant.customer_context' => $customerContext]);
 
+        $providerRequest = config('aiassistant.provider_request', []);
+
+        foreach (($moduleConfig['provider_request'] ?? []) as $key => $value) {
+            if (!array_key_exists($key, $providerRequest)) {
+                $providerRequest[$key] = $value;
+            }
+        }
+
+        config(['aiassistant.provider_request' => $providerRequest]);
+
         foreach (['max_tokens', 'prompts', 'text_formats'] as $section) {
             $current = config('aiassistant.'.$section, []);
 
