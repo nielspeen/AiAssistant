@@ -164,6 +164,57 @@
         return '';
     }
 
+    function testCustomerContext($trigger) {
+        var mailboxId = $trigger.data('mailbox-id');
+        var url = $trigger.data('test-url') || '';
+        var $result = $('.aiassistant-customer-context-test-result[data-mailbox-id="' + mailboxId + '"]');
+        var email = $('.aiassistant-customer-context-test-email[data-mailbox-id="' + mailboxId + '"]').val() || '';
+        var contextUrl = $('input[name="aiassistant_customer_context_urls[' + mailboxId + ']"]').val() || '';
+        var secretKey = $('input[name="aiassistant_customer_context_secret_keys[' + mailboxId + ']"]').val() || '';
+        var signatureHeader = $('select[name="aiassistant_customer_context_signature_headers[' + mailboxId + ']"]').val() || 'X-FREESCOUT-SIGNATURE';
+
+        if (!url) {
+            $result.removeClass('hidden alert-info').addClass('alert-danger').text('Test endpoint is not available.');
+            return;
+        }
+
+        $trigger.button('loading');
+        $result.removeClass('hidden alert-danger').addClass('alert-info').text('Testing...');
+
+        $.ajax({
+            method: 'POST',
+            url: url,
+            data: {
+                _token: csrfToken(),
+                mailbox_id: mailboxId,
+                email: email,
+                url: contextUrl,
+                secret_key: secretKey,
+                signature_header: signatureHeader
+            },
+            success: function (response) {
+                var output = '';
+
+                if (!response || response.status !== 'success') {
+                    $result.removeClass('alert-info').addClass('alert-danger').text(response && response.msg ? response.msg : 'Could not test customer context URL.');
+                    return;
+                }
+
+                output += 'HTTP ' + response.http_status + '\n';
+                output += response.signature_header + ': ' + response.signature + '\n\n';
+                output += response.raw_response || '';
+
+                $result.removeClass('alert-danger').addClass('alert-info').text(output);
+            },
+            error: function (xhr) {
+                $result.removeClass('alert-info').addClass('alert-danger').text(ajaxErrorMessage(xhr) + (ajaxErrorDetail(xhr) ? '\n\n' + ajaxErrorDetail(xhr) : ''));
+            },
+            complete: function () {
+                $trigger.button('reset');
+            }
+        });
+    }
+
     function generateDraft($trigger) {
         var $panel = ensurePanel();
         var url = draftUrl($trigger, $panel);
@@ -207,6 +258,11 @@
         event.preventDefault();
         event.stopPropagation();
         generateDraft($(this));
+    });
+
+    $(document).on('click', '.aiassistant-customer-context-test', function (event) {
+        event.preventDefault();
+        testCustomerContext($(this));
     });
 
     $(document).on('keydown', '.ai-assistant-draft-action', function (event) {

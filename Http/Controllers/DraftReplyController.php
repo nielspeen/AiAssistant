@@ -61,6 +61,7 @@ class DraftReplyController extends Controller
             'staff_notes' => $draft['staff_notes'],
             'retrieved_documents' => $draft['retrieved_documents'],
             'documentation_status' => $draft['documentation_status'],
+            'customer_context_status' => $draft['customer_context_status'],
         ]);
     }
 

@@ -121,6 +121,89 @@
     </div>
 
 
+    <h3 class="subheader">{{ __('Customer Context') }}</h3>
+
+    <div class="descr-block">
+        <p>{{ __('Optionally configure a mailbox-specific URL that receives the customer email addresses when AI Assistant drafts a reply. The URL must accept JSON and return JSON.') }}</p>
+    </div>
+
+    @if (!empty($aiassistant_mailboxes) && count($aiassistant_mailboxes))
+        @foreach ($aiassistant_mailboxes as $mailbox)
+            @php
+                $customerContextSettings = \Modules\AiAssistant\Services\CustomerContextService::getMailboxSettings($mailbox);
+                $urlField = 'aiassistant_customer_context_urls.' . $mailbox->id;
+                $secretField = 'aiassistant_customer_context_secret_keys.' . $mailbox->id;
+                $signatureHeaderField = 'aiassistant_customer_context_signature_headers.' . $mailbox->id;
+                $guidanceField = 'aiassistant_customer_context_guidance.' . $mailbox->id;
+                $urlInputId = 'aiassistant_customer_context_url_' . $mailbox->id;
+                $secretInputId = 'aiassistant_customer_context_secret_key_' . $mailbox->id;
+                $signatureHeaderInputId = 'aiassistant_customer_context_signature_header_' . $mailbox->id;
+                $guidanceInputId = 'aiassistant_customer_context_guidance_' . $mailbox->id;
+            @endphp
+            <div class="form-group{{ $errors->has($urlField) ? ' has-error' : '' }}">
+                <label for="{{ $urlInputId }}" class="col-sm-2 control-label">{{ $mailbox->name }}</label>
+                <div class="col-sm-6">
+                    <input id="{{ $urlInputId }}" type="url" class="form-control input-sized-lg" name="aiassistant_customer_context_urls[{{ $mailbox->id }}]" value="{{ old($urlField, $customerContextSettings['url']) }}" maxlength="2048" placeholder="https://example.com/freescout/customer-context">
+                    <div class="form-help">{{ __('Callback URL') }}: {{ $mailbox->email }}</div>
+                    @include('partials/field_error', ['field' => $urlField])
+                </div>
+            </div>
+
+            <div class="form-group{{ $errors->has($secretField) ? ' has-error' : '' }}">
+                <label for="{{ $secretInputId }}" class="col-sm-2 control-label">{{ __('Secret Key') }}</label>
+                <div class="col-sm-6">
+                    <input id="{{ $secretInputId }}" type="text" class="form-control input-sized-lg" name="aiassistant_customer_context_secret_keys[{{ $mailbox->id }}]" value="{{ old($secretField, $customerContextSettings['secret_key']) }}" maxlength="255">
+                    <div class="form-help">{{ __('The secret key used to generate a signature header. This can be used to verify the authenticity of the request.') }}</div>
+                    @include('partials/field_error', ['field' => $secretField])
+                </div>
+            </div>
+
+            <div class="form-group{{ $errors->has($signatureHeaderField) ? ' has-error' : '' }}">
+                <label for="{{ $signatureHeaderInputId }}" class="col-sm-2 control-label">{{ __('Signature Header') }}</label>
+                <div class="col-sm-6">
+                    <select id="{{ $signatureHeaderInputId }}" class="form-control input-sized" name="aiassistant_customer_context_signature_headers[{{ $mailbox->id }}]">
+                        <option value="X-FREESCOUT-SIGNATURE" {{ old($signatureHeaderField, $customerContextSettings['signature_header']) == 'X-FREESCOUT-SIGNATURE' ? 'selected' : '' }}>X-FREESCOUT-SIGNATURE</option>
+                        <option value="X-HELPSCOUT-SIGNATURE" {{ old($signatureHeaderField, $customerContextSettings['signature_header']) == 'X-HELPSCOUT-SIGNATURE' ? 'selected' : '' }}>X-HELPSCOUT-SIGNATURE</option>
+                    </select>
+                    <div class="form-help">{{ __('Select the signature header to use. This is used to verify the authenticity of the request. Select X-HELPSCOUT-SIGNATURE if you are migrating from HelpScout.') }}</div>
+                    @include('partials/field_error', ['field' => $signatureHeaderField])
+                </div>
+            </div>
+
+            <div class="form-group{{ $errors->has($guidanceField) ? ' has-error' : '' }}">
+                <label for="{{ $guidanceInputId }}" class="col-sm-2 control-label">{{ __('Reply Guidance') }}</label>
+                <div class="col-sm-6">
+                    <textarea id="{{ $guidanceInputId }}" class="form-control input-sized-lg" name="aiassistant_customer_context_guidance[{{ $mailbox->id }}]" rows="6" maxlength="6000" placeholder="{{ __('Example: We sell hosting services. Customers may ask about renewals, invoices, domains, and account access. In customer context, service_expiry means the date paid service ends.') }}">{{ old($guidanceField, $customerContextSettings['guidance']) }}</textarea>
+                    <div class="form-help">{{ __('Optional mailbox-specific background for drafting replies. Explain who you are, what customers buy, important terminology, field meanings, and preferred reply style.') }}</div>
+                    @include('partials/field_error', ['field' => $guidanceField])
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="aiassistant_customer_context_test_email_{{ $mailbox->id }}" class="col-sm-2 control-label">{{ __('Test') }}</label>
+                <div class="col-sm-6">
+                    <div class="input-group input-sized-lg">
+                        <input id="aiassistant_customer_context_test_email_{{ $mailbox->id }}" type="email" class="form-control aiassistant-customer-context-test-email" data-mailbox-id="{{ $mailbox->id }}" placeholder="{{ __('Customer email address') }}">
+                        <span class="input-group-btn">
+                            <button type="button" class="btn btn-default aiassistant-customer-context-test" data-mailbox-id="{{ $mailbox->id }}" data-test-url="{{ route('aiassistant.customer_context.test') }}" data-loading-text="{{ __('Testing') }}...">{{ __('Test') }}</button>
+                        </span>
+                    </div>
+                    <div class="form-help">{{ __('Sends a signed test request using the URL, secret key, and signature header currently shown above.') }}</div>
+                    <pre class="alert alert-info hidden aiassistant-customer-context-test-result" data-mailbox-id="{{ $mailbox->id }}"></pre>
+                </div>
+            </div>
+        @endforeach
+    @else
+        <div class="form-group">
+            <div class="col-sm-8 col-sm-offset-2">
+                <div class="alert alert-info margin-bottom-0">
+                    {{ __('Create a mailbox before configuring customer context URLs.') }}
+                </div>
+            </div>
+        </div>
+    @endif
+
+
     <h3 class="subheader">{{ __('Conversations') }}</h3>
 
     <div class="form-group margin-top">

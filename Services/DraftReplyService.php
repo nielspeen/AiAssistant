@@ -9,13 +9,16 @@ use Modules\AiAssistant\Models\Document;
 
 class DraftReplyService
 {
+    private $customerContextService;
     private $documentSearchService;
     private $openAiService;
 
     public function __construct(
+        CustomerContextService $customerContextService,
         DocumentSearchService $documentSearchService,
         OpenAiService $openAiService
     ) {
+        $this->customerContextService = $customerContextService;
         $this->documentSearchService = $documentSearchService;
         $this->openAiService = $openAiService;
     }
@@ -32,6 +35,7 @@ class DraftReplyService
         $locale = $this->normalizeLocale($locale ?: $this->detectLocale($latestCustomerText));
         $searchText = $this->searchText($conversation, $conversationContext, $latestCustomerText);
         $documentation = $this->documentationContext($conversation, $searchText, $locale, $documentLimit);
+        $customerContext = $this->customerContextService->contextForConversation($conversation);
 
         $promptConfig = config('aiassistant.prompts.draft_reply');
         $textFormat = config('aiassistant.text_formats.draft_reply');
@@ -45,6 +49,9 @@ class DraftReplyService
         $prompt->conversation = $conversationContext;
         $prompt->documentation = $documentation['chunks'];
         $prompt->documentation_status = $documentation['status'];
+        $prompt->mailbox_guidance = $customerContext['guidance'];
+        $prompt->customer_context = $customerContext['data'];
+        $prompt->customer_context_status = $customerContext['status'];
 
         $response = $this->openAiService->sendResponseRequest(
             $prompt,
@@ -63,6 +70,7 @@ class DraftReplyService
             'staff_notes' => $content['staff_notes'] ?? [],
             'retrieved_documents' => $documentation['chunks'],
             'documentation_status' => $documentation['status'],
+            'customer_context_status' => $customerContext['status'],
             'search_text' => $searchText,
         ];
     }

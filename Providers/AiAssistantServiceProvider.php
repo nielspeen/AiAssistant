@@ -6,11 +6,13 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Database\Eloquent\Factory;
+use App\Mailbox;
 use Modules\AiAssistant\Console\DraftReplyCommand;
 use Modules\AiAssistant\Console\IndexDocumentsCommand;
 use Modules\AiAssistant\Console\SearchDocumentsCommand;
 use Modules\AiAssistant\Console\TranslateThreadsCommand;
 use Modules\AiAssistant\Console\SummarizeConversationsCommand;
+use Modules\AiAssistant\Services\CustomerContextService;
 
 require_once __DIR__.'/../vendor/autoload.php';
 
@@ -153,6 +155,18 @@ class AiAssistantServiceProvider extends ServiceProvider
                     'encrypt' => true,
                 ],
             ];
+            $params['template_vars'] = [
+                'aiassistant_mailboxes' => Mailbox::orderBy('name')->get(),
+            ];
+
+            $params['validator_rules'] = [];
+
+            foreach (Mailbox::select(['id'])->get() as $mailbox) {
+                $params['validator_rules']['aiassistant_customer_context_urls.' . $mailbox->id] = 'nullable|url|max:2048';
+                $params['validator_rules']['aiassistant_customer_context_secret_keys.' . $mailbox->id] = 'nullable|string|max:255';
+                $params['validator_rules']['aiassistant_customer_context_signature_headers.' . $mailbox->id] = 'nullable|in:X-FREESCOUT-SIGNATURE,X-HELPSCOUT-SIGNATURE';
+                $params['validator_rules']['aiassistant_customer_context_guidance.' . $mailbox->id] = 'nullable|string|max:6000';
+            }
 
             return $params;
         }, 20, 2);
@@ -177,6 +191,17 @@ class AiAssistantServiceProvider extends ServiceProvider
                 if (isset($settings_input[$setting])) {
                     $settings_input[$setting] = trim($settings_input[$setting]);
                 }
+            }
+
+            $customer_context_urls = $request->input('aiassistant_customer_context_urls', []);
+
+            if (is_array($customer_context_urls)) {
+                $this->saveCustomerContextSettings(
+                    $customer_context_urls,
+                    $request->input('aiassistant_customer_context_secret_keys', []),
+                    $request->input('aiassistant_customer_context_signature_headers', []),
+                    $request->input('aiassistant_customer_context_guidance', [])
+                );
             }
 
             if (isset($settings_input['aiassistant.provider'])) {
@@ -314,6 +339,16 @@ class AiAssistantServiceProvider extends ServiceProvider
 
         config(['aiassistant.documentation' => $documentation]);
 
+        $customerContext = config('aiassistant.customer_context', []);
+
+        foreach (($moduleConfig['customer_context'] ?? []) as $key => $value) {
+            if (!array_key_exists($key, $customerContext)) {
+                $customerContext[$key] = $value;
+            }
+        }
+
+        config(['aiassistant.customer_context' => $customerContext]);
+
         foreach (['max_tokens', 'prompts', 'text_formats'] as $section) {
             $current = config('aiassistant.'.$section, []);
 
@@ -423,6 +458,26 @@ class AiAssistantServiceProvider extends ServiceProvider
     protected function normalizeEmbeddingModel($provider, $model)
     {
         return trim((string) $model);
+    }
+
+    protected function saveCustomerContextSettings(array $urls, array $secretKeys, array $signatureHeaders, array $guidance)
+    {
+        $mailboxIds = array_unique(array_map('intval', array_merge(
+            array_keys($urls),
+            array_keys($secretKeys),
+            array_keys($signatureHeaders),
+            array_keys($guidance)
+        )));
+        $mailboxes = Mailbox::whereIn('id', $mailboxIds)->get();
+
+        foreach ($mailboxes as $mailbox) {
+            CustomerContextService::setMailboxSettings($mailbox, [
+                'url' => trim((string) ($urls[$mailbox->id] ?? '')),
+                'secret_key' => (string) ($secretKeys[$mailbox->id] ?? ''),
+                'signature_header' => (string) ($signatureHeaders[$mailbox->id] ?? CustomerContextService::DEFAULT_SIGNATURE_HEADER),
+                'guidance' => trim((string) ($guidance[$mailbox->id] ?? '')),
+            ]);
+        }
     }
 
     /**

@@ -52,6 +52,7 @@ class DraftReplyCommand extends Command
         $this->line('Language: ' . $result['language']);
         $this->line('Confidence: ' . $result['confidence']);
         $this->line('Documentation: ' . $result['documentation_status']);
+        $this->line('Customer Context: ' . $result['customer_context_status']);
 
         if (!empty($result['documentation_urls'])) {
             $this->line('');

@@ -116,6 +116,14 @@ return [
         'retrieval_limit' => 5,
     ],
 
+    'customer_context' => [
+        'timeout' => 15,
+        'connect_timeout' => 5,
+        'max_response_bytes' => 131072,
+        'max_prompt_chars' => 12000,
+        'max_guidance_chars' => 6000,
+    ],
+
     // PROMPTS
 
     'prompts' => [
@@ -173,7 +181,13 @@ return [
             'rules' => (object) [
                 'draft a helpful support reply to the customer',
                 'answer in the requested reply language',
-                'use the conversation context and documentation excerpts only',
+                'use the conversation context, mailbox guidance, documentation excerpts, and customer context only',
+                'mailbox guidance is optional background from the support team; use it to understand the business, terminology, customer context, and reply style',
+                'do not quote or reveal mailbox guidance directly to the customer',
+                'customer context is optional and may be irrelevant or only partially relevant; use it only when it clearly helps answer the customer',
+                'when customer context includes explicit facts, summaries, or instructions that answer the customer question, treat those as authoritative',
+                'do not infer the meaning of ambiguous customer context fields unless their labels or values make the meaning clear',
+                'do not expose private customer context, account metadata, or system metadata unless it is appropriate and necessary for the customer-facing reply',
                 'do not invent policies, URLs, steps, prices, timelines, or account details',
                 'if documentation is relevant, include at most two public documentation URLs naturally in the reply',
                 'do not mention internal chunk IDs, scores, retrieval, embeddings, prompts, or AI',
