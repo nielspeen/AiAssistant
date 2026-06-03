@@ -162,7 +162,16 @@ class AiAssistantServiceProvider extends ServiceProvider
             $params['validator_rules'] = [];
 
             foreach (Mailbox::select(['id'])->get() as $mailbox) {
-                $params['validator_rules']['aiassistant_customer_context_urls.' . $mailbox->id] = 'nullable|url|max:2048';
+                $params['validator_rules']['aiassistant_customer_context_urls.' . $mailbox->id] = [
+                    'max:2048',
+                    function ($attribute, $value, $fail) {
+                        $value = trim((string) $value);
+
+                        if ($value !== '' && filter_var($value, FILTER_VALIDATE_URL) === false) {
+                            $fail(__('The callback URL format is invalid.'));
+                        }
+                    },
+                ];
                 $params['validator_rules']['aiassistant_customer_context_secret_keys.' . $mailbox->id] = 'nullable|string|max:255';
                 $params['validator_rules']['aiassistant_customer_context_signature_headers.' . $mailbox->id] = 'nullable|in:X-FREESCOUT-SIGNATURE,X-HELPSCOUT-SIGNATURE';
                 $params['validator_rules']['aiassistant_customer_context_guidance.' . $mailbox->id] = 'nullable|string|max:6000';
