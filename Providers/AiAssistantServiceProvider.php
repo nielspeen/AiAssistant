@@ -12,7 +12,6 @@ use Modules\AiAssistant\Console\IndexDocumentsCommand;
 use Modules\AiAssistant\Console\SearchDocumentsCommand;
 use Modules\AiAssistant\Console\TranslateThreadsCommand;
 use Modules\AiAssistant\Console\SummarizeConversationsCommand;
-use Modules\AiAssistant\Services\CustomerContextService;
 
 require_once __DIR__.'/../vendor/autoload.php';
 
@@ -134,10 +133,6 @@ class AiAssistantServiceProvider extends ServiceProvider
             $settings['aiassistant.documentation.chunk_overlap'] = \Option::get('aiassistant.documentation.chunk_overlap', config('aiassistant.documentation.chunk_overlap', 400));
             $settings['aiassistant.documentation.retrieval_limit'] = \Option::get('aiassistant.documentation.retrieval_limit', config('aiassistant.documentation.retrieval_limit', 5));
             $settings['aiassistant.documentation.enabled'] = $this->providerSupportsEmbeddings();
-            $settings['aiassistant.customer_context_url'] = \Option::get(CustomerContextService::OPTION_URL) ?: [];
-            $settings['aiassistant.customer_context_secret_key'] = \Option::get(CustomerContextService::OPTION_SECRET_KEY) ?: [];
-            $settings['aiassistant.customer_context_signature_header'] = \Option::get(CustomerContextService::OPTION_SIGNATURE_HEADER) ?: [];
-            $settings['aiassistant.customer_context_guidance'] = \Option::get(CustomerContextService::OPTION_GUIDANCE) ?: [];
             $settings['aiassistant.summary_conversation_threshold'] = \Option::get('aiassistant.summary_conversation_threshold', 3);
             $settings['aiassistant.translation_language'] = \Option::get('aiassistant.translation_language', 'en');
 
@@ -163,24 +158,6 @@ class AiAssistantServiceProvider extends ServiceProvider
                 'aiassistant_mailboxes' => Mailbox::orderBy('name')->get(),
             ];
 
-            $params['validator_rules'] = [];
-
-            foreach (Mailbox::select(['id'])->get() as $mailbox) {
-                $params['validator_rules']['settings.aiassistant\.customer_context_url.' . $mailbox->id] = [
-                    'max:2048',
-                    function ($attribute, $value, $fail) {
-                        $value = trim((string) $value);
-
-                        if ($value !== '' && filter_var($value, FILTER_VALIDATE_URL) === false) {
-                            $fail(__('The callback URL format is invalid.'));
-                        }
-                    },
-                ];
-                $params['validator_rules']['settings.aiassistant\.customer_context_secret_key.' . $mailbox->id] = 'nullable|string|max:255';
-                $params['validator_rules']['settings.aiassistant\.customer_context_signature_header.' . $mailbox->id] = 'nullable|in:X-FREESCOUT-SIGNATURE,X-HELPSCOUT-SIGNATURE';
-                $params['validator_rules']['settings.aiassistant\.customer_context_guidance.' . $mailbox->id] = 'nullable|string|max:6000';
-            }
-
             return $params;
         }, 20, 2);
 
@@ -205,8 +182,6 @@ class AiAssistantServiceProvider extends ServiceProvider
                     $settings_input[$setting] = trim($settings_input[$setting]);
                 }
             }
-
-            $this->normalizeCustomerContextSettings($settings_input);
 
             if (isset($settings_input['aiassistant.provider'])) {
                 $settings_input['aiassistant.provider'] = $this->normalizeProvider($settings_input['aiassistant.provider']);
@@ -462,31 +437,6 @@ class AiAssistantServiceProvider extends ServiceProvider
     protected function normalizeEmbeddingModel($provider, $model)
     {
         return trim((string) $model);
-    }
-
-    protected function normalizeCustomerContextSettings(array &$settings)
-    {
-        foreach ([
-            CustomerContextService::OPTION_URL,
-            CustomerContextService::OPTION_SECRET_KEY,
-            CustomerContextService::OPTION_SIGNATURE_HEADER,
-            CustomerContextService::OPTION_GUIDANCE,
-        ] as $option) {
-            if (!isset($settings[$option]) || !is_array($settings[$option])) {
-                $settings[$option] = [];
-            }
-        }
-
-        foreach (Mailbox::select(['id'])->get() as $mailbox) {
-            $mailboxId = (string) $mailbox->id;
-
-            $settings[CustomerContextService::OPTION_URL][$mailboxId] = trim((string) ($settings[CustomerContextService::OPTION_URL][$mailboxId] ?? ''));
-            $settings[CustomerContextService::OPTION_SECRET_KEY][$mailboxId] = (string) ($settings[CustomerContextService::OPTION_SECRET_KEY][$mailboxId] ?? '');
-            $settings[CustomerContextService::OPTION_SIGNATURE_HEADER][$mailboxId] = CustomerContextService::normalizeSignatureHeader(
-                $settings[CustomerContextService::OPTION_SIGNATURE_HEADER][$mailboxId] ?? CustomerContextService::DEFAULT_SIGNATURE_HEADER
-            );
-            $settings[CustomerContextService::OPTION_GUIDANCE][$mailboxId] = trim((string) ($settings[CustomerContextService::OPTION_GUIDANCE][$mailboxId] ?? ''));
-        }
     }
 
     /**

@@ -166,12 +166,13 @@
 
     function testCustomerContext($trigger) {
         var mailboxId = $trigger.data('mailbox-id');
+        var $form = $trigger.closest('.aiassistant-customer-context-form');
         var url = $trigger.data('test-url') || '';
         var $result = $('.aiassistant-customer-context-test-result[data-mailbox-id="' + mailboxId + '"]');
         var email = $('.aiassistant-customer-context-test-email[data-mailbox-id="' + mailboxId + '"]').val() || '';
-        var contextUrl = $('input[name="settings[aiassistant.customer_context_url][' + mailboxId + ']"]').val() || '';
-        var secretKey = $('input[name="settings[aiassistant.customer_context_secret_key][' + mailboxId + ']"]').val() || '';
-        var signatureHeader = $('select[name="settings[aiassistant.customer_context_signature_header][' + mailboxId + ']"]').val() || 'X-FREESCOUT-SIGNATURE';
+        var contextUrl = $form.find('input[name="url"]').val() || '';
+        var secretKey = $form.find('input[name="secret_key"]').val() || '';
+        var signatureHeader = $form.find('select[name="signature_header"]').val() || 'X-FREESCOUT-SIGNATURE';
 
         if (!url) {
             $result.removeClass('hidden alert-info').addClass('alert-danger').text('Test endpoint is not available.');

@@ -16,6 +16,52 @@ class CustomerContextController extends Controller
         $this->customerContextService = $customerContextService;
     }
 
+    public function update(Request $request, $mailboxId)
+    {
+        $mailbox = Mailbox::findOrFail((int) $mailboxId);
+        $errorPrefix = 'aiassistant_customer_context_' . $mailbox->id . '_';
+
+        $validator = \Validator::make($request->all(), [
+            'url' => [
+                'max:2048',
+                function ($attribute, $value, $fail) {
+                    $value = trim((string) $value);
+
+                    if ($value !== '' && filter_var($value, FILTER_VALIDATE_URL) === false) {
+                        $fail(__('Enter a valid callback URL, or leave it blank.'));
+                    }
+                },
+            ],
+            'secret_key' => 'nullable|string|max:255',
+            'signature_header' => 'required|in:X-FREESCOUT-SIGNATURE,X-HELPSCOUT-SIGNATURE',
+            'guidance' => 'nullable|string|max:6000',
+        ]);
+
+        if ($validator->fails()) {
+            $errors = [];
+
+            foreach ($validator->errors()->toArray() as $field => $messages) {
+                $errors[$errorPrefix . $field] = $messages;
+            }
+
+            return redirect()
+                ->route('settings', ['section' => 'aiassistant'])
+                ->withErrors($errors)
+                ->withInput($request->all() + ['aiassistant_customer_context_mailbox_id' => $mailbox->id]);
+        }
+
+        CustomerContextService::setMailboxSettings($mailbox, [
+            'url' => trim((string) $request->input('url', '')),
+            'secret_key' => (string) $request->input('secret_key', ''),
+            'signature_header' => (string) $request->input('signature_header', CustomerContextService::DEFAULT_SIGNATURE_HEADER),
+            'guidance' => trim((string) $request->input('guidance', '')),
+        ]);
+
+        \Session::flash('flash_success_floating', __('Customer context settings saved for :mailbox.', ['mailbox' => htmlspecialchars($mailbox->name)]));
+
+        return redirect()->route('settings', ['section' => 'aiassistant']);
+    }
+
     public function test(Request $request)
     {
         $validator = \Validator::make($request->all(), [

@@ -17,6 +17,7 @@ Route::group([
     'roles' => ['admin'],
 ], function () {
     Route::post('/ai-assistant/customer-context/test', 'Modules\AiAssistant\Http\Controllers\CustomerContextController@test')->name('aiassistant.customer_context.test');
+    Route::post('/ai-assistant/customer-context/{mailbox_id}', 'Modules\AiAssistant\Http\Controllers\CustomerContextController@update')->name('aiassistant.customer_context.update');
     Route::get('/ai-assistant/documents', 'Modules\AiAssistant\Http\Controllers\DocumentController@index')->name('aiassistant.documents');
     Route::post('/ai-assistant/documents/index', 'Modules\AiAssistant\Http\Controllers\DocumentController@indexAll')->name('aiassistant.documents.index_all');
     Route::post('/ai-assistant/documents/bulk', 'Modules\AiAssistant\Http\Controllers\DocumentController@bulkStore')->name('aiassistant.documents.bulk_store');
