@@ -131,51 +131,56 @@
         @foreach ($aiassistant_mailboxes as $mailbox)
             @php
                 $customerContextSettings = \Modules\AiAssistant\Services\CustomerContextService::getMailboxSettings($mailbox);
-                $urlField = 'aiassistant_customer_context_urls.' . $mailbox->id;
-                $secretField = 'aiassistant_customer_context_secret_keys.' . $mailbox->id;
-                $signatureHeaderField = 'aiassistant_customer_context_signature_headers.' . $mailbox->id;
-                $guidanceField = 'aiassistant_customer_context_guidance.' . $mailbox->id;
                 $urlInputId = 'aiassistant_customer_context_url_' . $mailbox->id;
                 $secretInputId = 'aiassistant_customer_context_secret_key_' . $mailbox->id;
                 $signatureHeaderInputId = 'aiassistant_customer_context_signature_header_' . $mailbox->id;
                 $guidanceInputId = 'aiassistant_customer_context_guidance_' . $mailbox->id;
+                $urlErrorField = 'settings.aiassistant->customer_context_url.' . $mailbox->id;
+                $secretErrorField = 'settings.aiassistant->customer_context_secret_key.' . $mailbox->id;
+                $signatureHeaderErrorField = 'settings.aiassistant->customer_context_signature_header.' . $mailbox->id;
+                $guidanceErrorField = 'settings.aiassistant->customer_context_guidance.' . $mailbox->id;
+                $oldSettings = old('settings', []);
+                $urlValue = $oldSettings[\Modules\AiAssistant\Services\CustomerContextService::OPTION_URL][$mailbox->id] ?? $customerContextSettings['url'];
+                $secretValue = $oldSettings[\Modules\AiAssistant\Services\CustomerContextService::OPTION_SECRET_KEY][$mailbox->id] ?? $customerContextSettings['secret_key'];
+                $signatureHeaderValue = $oldSettings[\Modules\AiAssistant\Services\CustomerContextService::OPTION_SIGNATURE_HEADER][$mailbox->id] ?? $customerContextSettings['signature_header'];
+                $guidanceValue = $oldSettings[\Modules\AiAssistant\Services\CustomerContextService::OPTION_GUIDANCE][$mailbox->id] ?? $customerContextSettings['guidance'];
             @endphp
-            <div class="form-group{{ $errors->has($urlField) ? ' has-error' : '' }}">
+            <div class="form-group{{ $errors->has($urlErrorField) ? ' has-error' : '' }}">
                 <label for="{{ $urlInputId }}" class="col-sm-2 control-label">{{ $mailbox->name }}</label>
                 <div class="col-sm-6">
-                    <input id="{{ $urlInputId }}" type="url" class="form-control input-sized-lg" name="aiassistant_customer_context_urls[{{ $mailbox->id }}]" value="{{ old($urlField, $customerContextSettings['url']) }}" maxlength="2048" placeholder="https://example.com/freescout/customer-context">
+                    <input id="{{ $urlInputId }}" type="url" class="form-control input-sized-lg" name="settings[aiassistant.customer_context_url][{{ $mailbox->id }}]" value="{{ $urlValue }}" maxlength="2048" placeholder="https://example.com/freescout/customer-context">
                     <div class="form-help">{{ __('Callback URL') }}: {{ $mailbox->email }}</div>
-                    @include('partials/field_error', ['field' => $urlField])
+                    @include('partials/field_error', ['field' => $urlErrorField])
                 </div>
             </div>
 
-            <div class="form-group{{ $errors->has($secretField) ? ' has-error' : '' }}">
+            <div class="form-group{{ $errors->has($secretErrorField) ? ' has-error' : '' }}">
                 <label for="{{ $secretInputId }}" class="col-sm-2 control-label">{{ __('Secret Key') }}</label>
                 <div class="col-sm-6">
-                    <input id="{{ $secretInputId }}" type="text" class="form-control input-sized-lg" name="aiassistant_customer_context_secret_keys[{{ $mailbox->id }}]" value="{{ old($secretField, $customerContextSettings['secret_key']) }}" maxlength="255">
+                    <input id="{{ $secretInputId }}" type="text" class="form-control input-sized-lg" name="settings[aiassistant.customer_context_secret_key][{{ $mailbox->id }}]" value="{{ $secretValue }}" maxlength="255">
                     <div class="form-help">{{ __('The secret key used to generate a signature header. This can be used to verify the authenticity of the request.') }}</div>
-                    @include('partials/field_error', ['field' => $secretField])
+                    @include('partials/field_error', ['field' => $secretErrorField])
                 </div>
             </div>
 
-            <div class="form-group{{ $errors->has($signatureHeaderField) ? ' has-error' : '' }}">
+            <div class="form-group{{ $errors->has($signatureHeaderErrorField) ? ' has-error' : '' }}">
                 <label for="{{ $signatureHeaderInputId }}" class="col-sm-2 control-label">{{ __('Signature Header') }}</label>
                 <div class="col-sm-6">
-                    <select id="{{ $signatureHeaderInputId }}" class="form-control input-sized" name="aiassistant_customer_context_signature_headers[{{ $mailbox->id }}]">
-                        <option value="X-FREESCOUT-SIGNATURE" {{ old($signatureHeaderField, $customerContextSettings['signature_header']) == 'X-FREESCOUT-SIGNATURE' ? 'selected' : '' }}>X-FREESCOUT-SIGNATURE</option>
-                        <option value="X-HELPSCOUT-SIGNATURE" {{ old($signatureHeaderField, $customerContextSettings['signature_header']) == 'X-HELPSCOUT-SIGNATURE' ? 'selected' : '' }}>X-HELPSCOUT-SIGNATURE</option>
+                    <select id="{{ $signatureHeaderInputId }}" class="form-control input-sized" name="settings[aiassistant.customer_context_signature_header][{{ $mailbox->id }}]">
+                        <option value="X-FREESCOUT-SIGNATURE" {{ $signatureHeaderValue == 'X-FREESCOUT-SIGNATURE' ? 'selected' : '' }}>X-FREESCOUT-SIGNATURE</option>
+                        <option value="X-HELPSCOUT-SIGNATURE" {{ $signatureHeaderValue == 'X-HELPSCOUT-SIGNATURE' ? 'selected' : '' }}>X-HELPSCOUT-SIGNATURE</option>
                     </select>
                     <div class="form-help">{{ __('Select the signature header to use. This is used to verify the authenticity of the request. Select X-HELPSCOUT-SIGNATURE if you are migrating from HelpScout.') }}</div>
-                    @include('partials/field_error', ['field' => $signatureHeaderField])
+                    @include('partials/field_error', ['field' => $signatureHeaderErrorField])
                 </div>
             </div>
 
-            <div class="form-group{{ $errors->has($guidanceField) ? ' has-error' : '' }}">
+            <div class="form-group{{ $errors->has($guidanceErrorField) ? ' has-error' : '' }}">
                 <label for="{{ $guidanceInputId }}" class="col-sm-2 control-label">{{ __('Reply Guidance') }}</label>
                 <div class="col-sm-6">
-                    <textarea id="{{ $guidanceInputId }}" class="form-control input-sized-lg" name="aiassistant_customer_context_guidance[{{ $mailbox->id }}]" rows="6" maxlength="6000" placeholder="{{ __('Example: We sell hosting services. Customers may ask about renewals, invoices, domains, and account access. In customer context, service_expiry means the date paid service ends.') }}">{{ old($guidanceField, $customerContextSettings['guidance']) }}</textarea>
+                    <textarea id="{{ $guidanceInputId }}" class="form-control input-sized-lg" name="settings[aiassistant.customer_context_guidance][{{ $mailbox->id }}]" rows="6" maxlength="6000" placeholder="{{ __('Example: We sell hosting services. Customers may ask about renewals, invoices, domains, and account access. In customer context, service_expiry means the date paid service ends.') }}">{{ $guidanceValue }}</textarea>
                     <div class="form-help">{{ __('Optional mailbox-specific background for drafting replies. Explain who you are, what customers buy, important terminology, field meanings, and preferred reply style.') }}</div>
-                    @include('partials/field_error', ['field' => $guidanceField])
+                    @include('partials/field_error', ['field' => $guidanceErrorField])
                 </div>
             </div>
 

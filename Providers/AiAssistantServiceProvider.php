@@ -134,6 +134,10 @@ class AiAssistantServiceProvider extends ServiceProvider
             $settings['aiassistant.documentation.chunk_overlap'] = \Option::get('aiassistant.documentation.chunk_overlap', config('aiassistant.documentation.chunk_overlap', 400));
             $settings['aiassistant.documentation.retrieval_limit'] = \Option::get('aiassistant.documentation.retrieval_limit', config('aiassistant.documentation.retrieval_limit', 5));
             $settings['aiassistant.documentation.enabled'] = $this->providerSupportsEmbeddings();
+            $settings['aiassistant.customer_context_url'] = \Option::get(CustomerContextService::OPTION_URL) ?: [];
+            $settings['aiassistant.customer_context_secret_key'] = \Option::get(CustomerContextService::OPTION_SECRET_KEY) ?: [];
+            $settings['aiassistant.customer_context_signature_header'] = \Option::get(CustomerContextService::OPTION_SIGNATURE_HEADER) ?: [];
+            $settings['aiassistant.customer_context_guidance'] = \Option::get(CustomerContextService::OPTION_GUIDANCE) ?: [];
             $settings['aiassistant.summary_conversation_threshold'] = \Option::get('aiassistant.summary_conversation_threshold', 3);
             $settings['aiassistant.translation_language'] = \Option::get('aiassistant.translation_language', 'en');
 
@@ -162,7 +166,7 @@ class AiAssistantServiceProvider extends ServiceProvider
             $params['validator_rules'] = [];
 
             foreach (Mailbox::select(['id'])->get() as $mailbox) {
-                $params['validator_rules']['aiassistant_customer_context_urls.' . $mailbox->id] = [
+                $params['validator_rules']['settings.aiassistant\.customer_context_url.' . $mailbox->id] = [
                     'max:2048',
                     function ($attribute, $value, $fail) {
                         $value = trim((string) $value);
@@ -172,9 +176,9 @@ class AiAssistantServiceProvider extends ServiceProvider
                         }
                     },
                 ];
-                $params['validator_rules']['aiassistant_customer_context_secret_keys.' . $mailbox->id] = 'nullable|string|max:255';
-                $params['validator_rules']['aiassistant_customer_context_signature_headers.' . $mailbox->id] = 'nullable|in:X-FREESCOUT-SIGNATURE,X-HELPSCOUT-SIGNATURE';
-                $params['validator_rules']['aiassistant_customer_context_guidance.' . $mailbox->id] = 'nullable|string|max:6000';
+                $params['validator_rules']['settings.aiassistant\.customer_context_secret_key.' . $mailbox->id] = 'nullable|string|max:255';
+                $params['validator_rules']['settings.aiassistant\.customer_context_signature_header.' . $mailbox->id] = 'nullable|in:X-FREESCOUT-SIGNATURE,X-HELPSCOUT-SIGNATURE';
+                $params['validator_rules']['settings.aiassistant\.customer_context_guidance.' . $mailbox->id] = 'nullable|string|max:6000';
             }
 
             return $params;
@@ -202,16 +206,7 @@ class AiAssistantServiceProvider extends ServiceProvider
                 }
             }
 
-            $customer_context_urls = $request->input('aiassistant_customer_context_urls', []);
-
-            if (is_array($customer_context_urls)) {
-                $this->saveCustomerContextSettings(
-                    $customer_context_urls,
-                    $request->input('aiassistant_customer_context_secret_keys', []),
-                    $request->input('aiassistant_customer_context_signature_headers', []),
-                    $request->input('aiassistant_customer_context_guidance', [])
-                );
-            }
+            $this->normalizeCustomerContextSettings($settings_input);
 
             if (isset($settings_input['aiassistant.provider'])) {
                 $settings_input['aiassistant.provider'] = $this->normalizeProvider($settings_input['aiassistant.provider']);
@@ -469,23 +464,28 @@ class AiAssistantServiceProvider extends ServiceProvider
         return trim((string) $model);
     }
 
-    protected function saveCustomerContextSettings(array $urls, array $secretKeys, array $signatureHeaders, array $guidance)
+    protected function normalizeCustomerContextSettings(array &$settings)
     {
-        $mailboxIds = array_unique(array_map('intval', array_merge(
-            array_keys($urls),
-            array_keys($secretKeys),
-            array_keys($signatureHeaders),
-            array_keys($guidance)
-        )));
-        $mailboxes = Mailbox::whereIn('id', $mailboxIds)->get();
+        foreach ([
+            CustomerContextService::OPTION_URL,
+            CustomerContextService::OPTION_SECRET_KEY,
+            CustomerContextService::OPTION_SIGNATURE_HEADER,
+            CustomerContextService::OPTION_GUIDANCE,
+        ] as $option) {
+            if (!isset($settings[$option]) || !is_array($settings[$option])) {
+                $settings[$option] = [];
+            }
+        }
 
-        foreach ($mailboxes as $mailbox) {
-            CustomerContextService::setMailboxSettings($mailbox, [
-                'url' => trim((string) ($urls[$mailbox->id] ?? '')),
-                'secret_key' => (string) ($secretKeys[$mailbox->id] ?? ''),
-                'signature_header' => (string) ($signatureHeaders[$mailbox->id] ?? CustomerContextService::DEFAULT_SIGNATURE_HEADER),
-                'guidance' => trim((string) ($guidance[$mailbox->id] ?? '')),
-            ]);
+        foreach (Mailbox::select(['id'])->get() as $mailbox) {
+            $mailboxId = (string) $mailbox->id;
+
+            $settings[CustomerContextService::OPTION_URL][$mailboxId] = trim((string) ($settings[CustomerContextService::OPTION_URL][$mailboxId] ?? ''));
+            $settings[CustomerContextService::OPTION_SECRET_KEY][$mailboxId] = (string) ($settings[CustomerContextService::OPTION_SECRET_KEY][$mailboxId] ?? '');
+            $settings[CustomerContextService::OPTION_SIGNATURE_HEADER][$mailboxId] = CustomerContextService::normalizeSignatureHeader(
+                $settings[CustomerContextService::OPTION_SIGNATURE_HEADER][$mailboxId] ?? CustomerContextService::DEFAULT_SIGNATURE_HEADER
+            );
+            $settings[CustomerContextService::OPTION_GUIDANCE][$mailboxId] = trim((string) ($settings[CustomerContextService::OPTION_GUIDANCE][$mailboxId] ?? ''));
         }
     }
 

@@ -169,9 +169,9 @@
         var url = $trigger.data('test-url') || '';
         var $result = $('.aiassistant-customer-context-test-result[data-mailbox-id="' + mailboxId + '"]');
         var email = $('.aiassistant-customer-context-test-email[data-mailbox-id="' + mailboxId + '"]').val() || '';
-        var contextUrl = $('input[name="aiassistant_customer_context_urls[' + mailboxId + ']"]').val() || '';
-        var secretKey = $('input[name="aiassistant_customer_context_secret_keys[' + mailboxId + ']"]').val() || '';
-        var signatureHeader = $('select[name="aiassistant_customer_context_signature_headers[' + mailboxId + ']"]').val() || 'X-FREESCOUT-SIGNATURE';
+        var contextUrl = $('input[name="settings[aiassistant.customer_context_url][' + mailboxId + ']"]').val() || '';
+        var secretKey = $('input[name="settings[aiassistant.customer_context_secret_key][' + mailboxId + ']"]').val() || '';
+        var signatureHeader = $('select[name="settings[aiassistant.customer_context_signature_header][' + mailboxId + ']"]').val() || 'X-FREESCOUT-SIGNATURE';
 
         if (!url) {
             $result.removeClass('hidden alert-info').addClass('alert-danger').text('Test endpoint is not available.');
