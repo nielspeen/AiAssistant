@@ -6,6 +6,7 @@ use App\Mailbox;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Modules\AiAssistant\Models\Document;
+use Modules\AiAssistant\Models\MailboxApiKey;
 use Modules\AiAssistant\Services\DocumentIndexingService;
 use Modules\AiAssistant\Services\DocumentationMarkdownService;
 
@@ -29,6 +30,8 @@ class DocumentController extends Controller
         return view('aiassistant::documents.index', [
             'documents' => $documents,
             'mailboxes' => $this->mailboxes(),
+            'apiKeys' => $this->apiKeysByMailbox(),
+            'apiKeyStorageReady' => $this->apiKeyStorageReady(),
         ]);
     }
 
@@ -134,6 +137,43 @@ class DocumentController extends Controller
         }
 
         \Session::flash('flash_success_floating', $message);
+
+        return redirect()->route('aiassistant.documents');
+    }
+
+    public function issueApiKey($mailbox_id)
+    {
+        if (!$this->apiKeyStorageReady()) {
+            \Session::flash('flash_error_floating', __('Documentation API key storage is not ready. Run module migrations and try again.'));
+
+            return redirect()->route('aiassistant.documents');
+        }
+
+        $mailbox = Mailbox::findOrFail((int) $mailbox_id);
+        [$apiKey, $token] = MailboxApiKey::issueForMailbox((int) $mailbox->id);
+
+        \Session::flash('flash_success_unescaped',
+            __('Documentation API key generated for :mailbox.', ['mailbox' => htmlspecialchars($mailbox->name)]) .
+            '<br>' .
+            __('Copy it now. It will not be shown again.') .
+            '<br><code>' . htmlspecialchars($token) . '</code>'
+        );
+
+        return redirect()->route('aiassistant.documents');
+    }
+
+    public function revokeApiKey($mailbox_id)
+    {
+        if (!$this->apiKeyStorageReady()) {
+            \Session::flash('flash_error_floating', __('Documentation API key storage is not ready. Run module migrations and try again.'));
+
+            return redirect()->route('aiassistant.documents');
+        }
+
+        $mailbox = Mailbox::findOrFail((int) $mailbox_id);
+        MailboxApiKey::where('mailbox_id', (int) $mailbox->id)->delete();
+
+        \Session::flash('flash_success_floating', __('Documentation API key revoked for :mailbox.', ['mailbox' => htmlspecialchars($mailbox->name)]));
 
         return redirect()->route('aiassistant.documents');
     }
@@ -272,6 +312,20 @@ class DocumentController extends Controller
     private function mailboxes()
     {
         return Mailbox::orderBy('name')->get();
+    }
+
+    private function apiKeysByMailbox()
+    {
+        if (!$this->apiKeyStorageReady()) {
+            return collect();
+        }
+
+        return MailboxApiKey::all()->keyBy('mailbox_id');
+    }
+
+    private function apiKeyStorageReady(): bool
+    {
+        return \Schema::hasTable('aiassistant_mailbox_api_keys');
     }
 
     private function parseBulkUrls(string $urls): array

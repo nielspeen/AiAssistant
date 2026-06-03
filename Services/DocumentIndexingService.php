@@ -37,7 +37,49 @@ class DocumentIndexingService
         }
 
         try {
+            if ($document->source_type === Document::SOURCE_TYPE_API) {
+                return $this->indexContent($document, (string) $document->content, (string) $document->title, $force);
+            }
+
             $markdown = $this->markdownService->fetch($document->source_url);
+
+            return $this->indexContent($document, $markdown['content'], $markdown['title'], $force);
+        } catch (\Exception $e) {
+            $document->status = Document::STATUS_FAILED;
+            $document->last_error = $e->getMessage();
+            $document->save();
+
+            throw $e;
+        }
+    }
+
+    public function indexSubmittedContent(Document $document, string $content, string $title = '', bool $force = false): array
+    {
+        if (!$document->enabled) {
+            return ['status' => 'skipped', 'message' => 'Document is disabled'];
+        }
+
+        if (!$this->canIndex()) {
+            return ['status' => 'skipped', 'message' => 'Selected documentation embedding provider does not support embeddings'];
+        }
+
+        return $this->indexContent($document, $content, $title, $force);
+    }
+
+    private function indexContent(Document $document, string $content, string $title = '', bool $force = false): array
+    {
+        $content = trim($content);
+
+        if (!$content) {
+            throw new \Exception('Document has no indexable content');
+        }
+
+        try {
+            $markdown = [
+                'content' => $content,
+                'title' => $title ?: $this->markdownService->extractTitle($content) ?: $document->title,
+                'hash' => hash('sha256', $content),
+            ];
             $contentChanged = $document->content_hash !== $markdown['hash'];
             $hasChunks = $document->chunks()->count() > 0;
             $embeddingModel = $this->openAiService->getConfiguredEmbeddingModel();

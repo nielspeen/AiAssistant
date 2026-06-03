@@ -34,6 +34,7 @@ Decisions to make:
    - If an admin enters a URL ending in `.md`, normalize the stored public URL by removing `.md`.
    - The fetched Markdown becomes the canonical content to index.
    - Later: pasted text, file upload, help center sync.
+   - Added after the MVP: websites can push Markdown directly through a mailbox-authenticated REST API for private or freshly updated docs.
 
 2. Scope:
    - Decision: documentation is mailbox-specific from the start.
@@ -190,6 +191,38 @@ Done when:
 2. The module fetches the `.md` URL on save and stores the Markdown title/content.
 3. Admin can trigger reindexing.
 4. UI stays inside the AiAssistant module.
+
+## Phase 3B: Add Direct Documentation Submission API
+
+Purpose: allow a documentation website or build job to push updated Markdown directly into a mailbox without requiring the content to be publicly fetchable.
+
+API behavior:
+
+1. Admin generates a simple per-mailbox Authorization key in the documentation UI.
+2. The module stores only a hash of the key plus a short preview.
+3. The raw key is shown once when generated or regenerated.
+4. Requests use `Authorization: Bearer <mailbox key>`.
+5. The key determines the mailbox. The caller does not submit a mailbox id.
+6. The request body includes:
+   - `identifier`: stable document id from the website or build system.
+   - `content`: Markdown/text content to index.
+   - `title`: optional; derive it from Markdown when omitted.
+   - `public_url`: optional public canonical URL.
+   - `localized_urls`: optional object keyed by `en`, `ja`, `zh`, and `ko`.
+   - `canonical_locale`: optional, defaults to `en`.
+   - `enabled`: optional, defaults to true.
+7. Private documents without a public URL are stored with an internal `api://` source URL and are not shown as clickable links in the UI.
+8. New or updated submitted content is chunked and embedded immediately from the submitted payload, without fetching the URL again.
+9. If indexing is unavailable because the embedding provider is not configured, the document is still saved and the API response reports the skipped indexing status.
+10. If indexing fails after saving, return a JSON error with the provider/indexing detail so automation can alert clearly.
+
+Done when:
+
+1. Admin can generate, regenerate, and revoke a mailbox API key.
+2. A website can `POST /ai-assistant/api/documents` with a bearer key and Markdown content.
+3. The document is upserted by mailbox plus identifier.
+4. The submitted content is indexed immediately without a fetch.
+5. Private API documents are visible in the admin list without leaking fake public URLs.
 
 ## Phase 4: Add Documentation Indexing Settings
 

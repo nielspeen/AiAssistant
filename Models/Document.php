@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Document extends Model
 {
     const SOURCE_TYPE_URL = 'url';
+    const SOURCE_TYPE_API = 'api';
 
     const STATUS_PENDING = 'pending';
     const STATUS_INDEXED = 'indexed';
@@ -65,6 +66,10 @@ class Document extends Model
             return $urls[$locale];
         }
 
+        if ($this->source_type === static::SOURCE_TYPE_API && strpos($this->source_url, 'api://') === 0) {
+            return '';
+        }
+
         return $this->source_url;
     }
 
@@ -111,6 +116,11 @@ class Document extends Model
     public static function markdownUrlFor(string $sourceUrl): string
     {
         return rtrim(static::normalizeSourceUrl($sourceUrl), '/') . '.md';
+    }
+
+    public static function apiSourceIdentifier(string $identifier): string
+    {
+        return hash('sha256', 'api:' . trim($identifier));
     }
 
     private function decodeJsonAttribute($value): array
