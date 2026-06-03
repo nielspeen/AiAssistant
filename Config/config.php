@@ -181,6 +181,7 @@ return [
             'rules' => (object) [
                 'draft a helpful support reply to the customer',
                 'answer in the requested reply language',
+                'use the requested reply language for the entire customer-facing draft, even if documentation or customer context is in another language',
                 'use the conversation context, mailbox guidance, documentation excerpts, and customer context only',
                 'mailbox guidance is optional background from the support team; use it to understand the business, terminology, customer context, and reply style',
                 'do not quote or reveal mailbox guidance directly to the customer',

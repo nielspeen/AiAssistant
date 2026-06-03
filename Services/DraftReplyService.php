@@ -45,7 +45,8 @@ class DraftReplyService
         }
 
         $prompt = clone $promptConfig;
-        $prompt->reply_language = $locale;
+        $prompt->reply_locale = $locale;
+        $prompt->reply_language = $this->languageName($locale);
         $prompt->conversation = $conversationContext;
         $prompt->documentation = $documentation['chunks'];
         $prompt->documentation_status = $documentation['status'];
@@ -192,6 +193,12 @@ class DraftReplyService
             return Document::CANONICAL_LOCALE;
         }
 
+        $scriptLocale = $this->detectLocaleByScript($text);
+
+        if ($scriptLocale) {
+            return $scriptLocale;
+        }
+
         try {
             $languages = (array) (new Language())->detect($text)->close();
             $language = strtolower((string) array_key_first($languages));
@@ -214,6 +221,23 @@ class DraftReplyService
         return Document::CANONICAL_LOCALE;
     }
 
+    private function detectLocaleByScript(string $text): string
+    {
+        if (preg_match('/[\x{1100}-\x{11ff}\x{3130}-\x{318f}\x{ac00}-\x{d7af}]/u', $text)) {
+            return 'ko';
+        }
+
+        if (preg_match('/[\x{3040}-\x{30ff}]/u', $text)) {
+            return 'ja';
+        }
+
+        if (preg_match('/\p{Han}/u', $text)) {
+            return 'zh';
+        }
+
+        return '';
+    }
+
     private function normalizeLocale(string $locale): string
     {
         $locale = strtolower(trim($locale));
@@ -227,6 +251,21 @@ class DraftReplyService
         }
 
         return $locale;
+    }
+
+    private function languageName(string $locale): string
+    {
+        switch ($locale) {
+            case 'ja':
+                return 'Japanese';
+            case 'zh':
+                return 'Chinese';
+            case 'ko':
+                return 'Korean';
+            case 'en':
+            default:
+                return 'English';
+        }
     }
 
     private function threadType(Thread $thread): string
