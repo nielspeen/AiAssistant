@@ -143,7 +143,21 @@ return [
     'prompts' => [
         'summarize_conversation' => (object) [
             'task' => 'summarize_conversation',
-            'rules' => (object) ['80-100 words', '1-2 sentences', 'Do not use lead-ins like "Subject shows", "The latest thread", "The email", etc.', 'focus on newest unresolved issue', 'english language', 'do not describe the layout of the conversation, just the content', 'state facts only, do not draw conclusions'],
+            'rules' => (object) [
+                'english language',
+                'one_liner: concise one-line status of the conversation, max 25 words',
+                'summary: newline-separated Markdown bullet list, each bullet starts with "- "',
+                'summary bullets must be chronological from oldest notable update to newest notable update',
+                'each bullet should describe one notable update in plain language and be max 22 words',
+                'use the participant names from the author field; do not use generic roles like customer, staff, user, or agent',
+                'skip greetings, signatures, quoted text, auto-replies, boilerplate, duplicate acknowledgements, and other non-noteworthy messages',
+                'merge adjacent messages when they add to the same update, especially from the same author',
+                'include internal notes only when they materially change the support state or next action',
+                'prefer 3-8 bullets; use fewer when the conversation is short',
+                'do not use lead-ins like "Subject shows", "The latest thread", "The email", etc.',
+                'do not describe the layout of the conversation, just the content',
+                'state facts only, do not draw conclusions',
+            ],
             'message_types' => (object) [
                 'customer_to_staff' => 1,
                 'staff_to_customer' => 2,
@@ -151,32 +165,24 @@ return [
             ],
             'few_shots' => [
                 (object) [
-                    'bad' => 'The latest issue is that Joe could not login. This has been resolved now.',
-                    'good' => 'Joe could not login. This has been resolved now.',
+                    'bad' => 'The customer says the server is down. Staff asks which server. The customer says Belgium.',
+                    'good' => "- Joe reports the server is down.\n- Alice asks Joe which server is affected.\n- Joe says Belgium is affected.",
                 ],
                 (object) [
-                    'bad' => 'The issue is that Alice wants her account to be canceled.',
-                    'good' => 'Alice wants her account to be canceled.',
+                    'bad' => "- Customer reports Belgium is down.\n- Customer reports Netherlands is also down.",
+                    'good' => '- Joe reports Belgium and Netherlands are down.',
                 ],
                 (object) [
-                    'bad' => 'The conversation centers on a payment notification that was received.',
-                    'good' => 'A payment notification was received.',
+                    'bad' => '- Alice says hello.',
+                    'good' => '- Alice asks whether the Pro plan can be cancelled before renewal.',
                 ],
                 (object) [
-                    'bad' => 'Latest activity shows a payment notification was sent confirming a USD 1,103.78 payment',
-                    'good' => 'Payment has been confirmed.',
+                    'bad' => '- Staff asks Joe which server is affected.',
+                    'good' => '- Alice asks Joe which server is affected.',
                 ],
                 (object) [
-                    'bad' => 'The email, titled Payment Completed, informs us that the transaction succeeded',
-                    'good' => 'The transaction succeeded.',
-                ],
-                (object) [
-                    'bad' => 'The most recent thread is about pizza.',
-                    'good' => 'Pizza.',
-                ],
-                (object) [
-                    'bad' => 'The body text is "hello"',
-                    'good' => 'Joe says hello.',
+                    'bad' => '- The email, titled Payment Completed, informs us that the transaction succeeded.',
+                    'good' => '- Payment has been confirmed.',
                 ],
             ], // few_shots
         ], // summarize_conversation
@@ -233,7 +239,7 @@ return [
                     ], // one_liner
                     'summary' => [
                         'type' => 'string',
-                        'description' => 'A concise summary of the conversation. Max 100 words.',
+                        'description' => 'A chronological newline-separated Markdown bullet list of notable conversation updates. Each line starts with "- ".',
                     ], // summary
                 ], // properties
                 'additionalProperties' => false,

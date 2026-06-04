@@ -22,7 +22,36 @@
         </div>
         <div class="thread-body">
             <div class="thread-content" dir="auto">
-                <div>{{ $summary }}</div>
+                @php
+                    $summary_lines = preg_split('/\r\n|\r|\n/', trim($summary));
+                    $summary_items = [];
+                    $summary_is_list = false;
+
+                    foreach ($summary_lines as $summary_line) {
+                        $summary_line = trim($summary_line);
+
+                        if ($summary_line === '') {
+                            continue;
+                        }
+
+                        if (preg_match('/^[-*]\s+/', $summary_line)) {
+                            $summary_is_list = true;
+                            $summary_line = preg_replace('/^[-*]\s+/', '', $summary_line);
+                        }
+
+                        $summary_items[] = $summary_line;
+                    }
+                @endphp
+
+                @if ($summary_is_list || count($summary_items) > 1)
+                    <ul class="ai-assistant-summary-list">
+                        @foreach ($summary_items as $summary_item)
+                            <li>{{ $summary_item }}</li>
+                        @endforeach
+                    </ul>
+                @else
+                    <div>{{ $summary }}</div>
+                @endif
             </div>
         </div>
     </div>

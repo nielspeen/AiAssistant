@@ -57,19 +57,12 @@ class SummarizeConversationsCommand extends Command
             $conversationThread = [
                 'subject' => $conversation->subject,
                 'threads' => $threads->map(function ($thread) {
-                    if ($thread->created_by_user_id) {
-                        $author = $thread->created_by_user->first_name;
-                    } elseif ($thread->created_by_customer_id) {
-                        $author = $thread->created_by_customer->first_name;
-                    } else {
-                        $author = 'Unknown';
-                    }
                     if (! is_null($thread->body)) {
                         return [
                             'body' => HelperService::normalizeWhitespace(strip_tags(HelperService::stripTagsWithContent($thread->body))),
                             'created_at' => $thread->created_at->toDateTimeString(),
                             'type' => $thread->type,
-                            'author' => $author,
+                            'author' => $this->threadAuthorName($thread),
                         ];
                     } else {
                         return null;
@@ -133,5 +126,30 @@ class SummarizeConversationsCommand extends Command
             ->where('status', '!=', Conversation::STATUS_SPAM)
             ->where('state', '!=', Conversation::STATE_DELETED)
             ->get();
+    }
+
+    private function threadAuthorName($thread)
+    {
+        if ($thread->created_by_user_id && $thread->created_by_user) {
+            $name = trim($thread->created_by_user->getFullName());
+
+            if ($name !== '') {
+                return $name;
+            }
+
+            return $thread->created_by_user->email ?: 'Unknown';
+        }
+
+        if ($thread->created_by_customer_id && $thread->created_by_customer) {
+            $name = trim($thread->created_by_customer->getFullName(true, true));
+
+            if ($name !== '') {
+                return $name;
+            }
+
+            return 'Unknown';
+        }
+
+        return 'Unknown';
     }
 }

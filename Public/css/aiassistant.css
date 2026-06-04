@@ -3,6 +3,20 @@
     -webkit-box-shadow: inset 5px 0 0 0 rgb(106, 193, 255);
     box-shadow: inset 5px 0 0 0 rgb(106, 193, 255);
 }
+
+.ai-assistant-summary-list {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.ai-assistant-summary-list li {
+    margin: 0 0 6px;
+}
+
+.ai-assistant-summary-list li:last-child {
+    margin-bottom: 0;
+}
+
 /* .thread-type-ai-summary {
     color: #3197d6;
 } */
